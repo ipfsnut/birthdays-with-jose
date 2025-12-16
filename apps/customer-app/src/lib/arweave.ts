@@ -22,58 +22,32 @@ export interface EncryptedPayload {
  * Returns the Arweave transaction ID (can be accessed at https://arweave.net/{id})
  */
 export async function uploadToArweave(payload: EncryptedPayload): Promise<string> {
-  const jsonData = JSON.stringify(payload)
-  
-  // For now, we'll use a simple API approach
-  // In production, you'd use TurboFactory.authenticated with a JWK
+  // Upload through our API worker which has ArDrive credentials
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://birthday-songs-api.dylan-259.workers.dev'
   
   try {
-    // Try to use Turbo SDK if available
-    const { TurboFactory } = await import('@ardrive/turbo-sdk')
-    
-    // Use unauthenticated turbo for testing (has free tier)
-    const turbo = TurboFactory.unauthenticated()
-    
-    const encoder = new TextEncoder()
-    const data = encoder.encode(jsonData)
-    
-    const uploadResult = await turbo.uploadFile({
-      fileStreamFactory: () => {
-        // Create a readable stream from the data
-        return new ReadableStream({
-          start(controller) {
-            controller.enqueue(data)
-            controller.close()
-          }
-        })
+    const response = await fetch(`${apiUrl}/api/orders/upload`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      fileSizeFactory: () => data.length,
-      dataItemOpts: {
-        tags: [
-          { name: 'Content-Type', value: 'application/json' },
-          { name: 'App-Name', value: 'BirthdaySongs' },
-          { name: 'App-Version', value: '1.0.0' },
-          { name: 'Content-Kind', value: payload.contentType },
-          { name: 'Encrypted', value: 'true' },
-          ...(payload.tokenId !== undefined 
-            ? [{ name: 'Token-Id', value: payload.tokenId.toString() }] 
-            : []
-          ),
-        ],
-      },
+      body: JSON.stringify({
+        orderData: payload,
+        metadata: {
+          tokenId: payload.tokenId || Date.now(),
+        }
+      })
     })
-    
-    return uploadResult.id
-  } catch (error) {
-    console.error('Turbo upload failed, using fallback:', error)
-    
-    // Fallback: Store in localStorage for testing
-    // In production, this should always succeed with Turbo
-    const fakeId = `local-${Date.now()}-${Math.random().toString(36).slice(2)}`
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`arweave-${fakeId}`, jsonData)
+
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.statusText}`)
     }
-    return fakeId
+
+    const result = await response.json()
+    return result.arweaveId
+  } catch (error) {
+    console.error('Upload to ArDrive failed:', error)
+    throw error
   }
 }
 
@@ -81,14 +55,6 @@ export async function uploadToArweave(payload: EncryptedPayload): Promise<string
  * Fetch encrypted data from Arweave
  */
 export async function fetchFromArweave(transactionId: string): Promise<EncryptedPayload> {
-  // Check for local fallback first (testing)
-  if (transactionId.startsWith('local-') && typeof window !== 'undefined') {
-    const data = localStorage.getItem(`arweave-${transactionId}`)
-    if (data) {
-      return JSON.parse(data)
-    }
-  }
-  
   // Fetch from Arweave gateway
   const response = await fetch(`https://arweave.net/${transactionId}`)
   if (!response.ok) {
@@ -102,9 +68,6 @@ export async function fetchFromArweave(transactionId: string): Promise<Encrypted
  * Build Arweave URL from transaction ID
  */
 export function getArweaveUrl(transactionId: string): string {
-  if (transactionId.startsWith('local-')) {
-    return `local://${transactionId}` // For testing
-  }
   return `https://arweave.net/${transactionId}`
 }
 
@@ -112,9 +75,6 @@ export function getArweaveUrl(transactionId: string): string {
  * Build ar:// URI from transaction ID
  */
 export function getArweaveUri(transactionId: string): string {
-  if (transactionId.startsWith('local-')) {
-    return `local://${transactionId}` // For testing
-  }
   return `ar://${transactionId}`
 }
 
@@ -128,8 +88,8 @@ export function parseArweaveUri(uri: string): string {
   if (uri.startsWith('https://arweave.net/')) {
     return uri.replace('https://arweave.net/', '')
   }
-  if (uri.startsWith('local://')) {
-    return uri.replace('local://', '')
+  if (uri.startsWith('ardrive://')) {
+    return uri.replace('ardrive://', '')
   }
   return uri
 }
