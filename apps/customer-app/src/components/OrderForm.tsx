@@ -517,7 +517,7 @@ export function OrderForm({ isConnected }: OrderFormProps) {
       {/* Submit */}
       <button
         type="submit"
-        disabled={!isConnected || isProcessing || !hasEnoughBalance || (supplyData && (selectedTier === SongType.BIRTHDAY ? supplyData.birthday.soldOut : supplyData.natal.soldOut))}
+        disabled={!isConnected || isProcessing || !hasEnoughBalance || !!(supplyData && (selectedTier === SongType.BIRTHDAY ? supplyData.birthday.soldOut : supplyData.natal.soldOut))}
         className={`
           mt-4 w-full py-4 rounded-xl font-bold text-base transition-all active:scale-98
           ${isConnected && hasEnoughBalance && !isProcessing && (!supplyData || !(selectedTier === SongType.BIRTHDAY ? supplyData.birthday.soldOut : supplyData.natal.soldOut))
