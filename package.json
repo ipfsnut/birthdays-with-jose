@@ -1,0 +1,52 @@
+{
+  "name": "@birthday-songs/monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Decentralized birthday song NFT marketplace with ArDrive encryption",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/birthday-songs"
+  },
+  "author": "Jose & Dylan",
+  "license": "MIT",
+  "keywords": [
+    "web3",
+    "nft",
+    "arweave",
+    "ardrive",
+    "encryption",
+    "cloudflare",
+    "birthday-songs"
+  ],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "build:packages": "turbo run build --filter=./packages/*",
+    "deploy": "turbo run deploy",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean",
+    "deploy:worker": "cd apps/api-worker && npm run deploy",
+    "deploy:customer": "cd apps/customer-app && npm run deploy",
+    "deploy:dashboard": "cd apps/jose-dashboard && npm run deploy",
+    "deploy:all": "npm run deploy:worker && npm run deploy:customer && npm run deploy:dashboard"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.26.0",
+    "@turbo/gen": "^1.10.0",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "turbo": "^2.6.3"
+  }
+}

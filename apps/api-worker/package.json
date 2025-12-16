@@ -1,0 +1,33 @@
+{
+  "name": "@birthday-songs/api-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Worker API for ArDrive operations",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "tsx src/dev-server.ts",
+    "dev:wrangler": "wrangler dev",
+    "deploy": "wrangler deploy", 
+    "build": "tsc",
+    "test": "vitest",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.7",
+    "hono": "^4.0.0",
+    "tsx": "^4.6.0"
+  },
+  "optionalDependencies": {
+    "@ardrive/turbo-sdk": "^1.19.0",
+    "@birthday-songs/shared": "*",
+    "@birthday-songs/encryption": "*",
+    "drizzle-orm": "^0.29.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20231025.0",
+    "wrangler": "^3.19.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0",
+    "eslint": "^8.0.0"
+  }
+}

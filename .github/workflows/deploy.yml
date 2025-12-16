@@ -1,0 +1,60 @@
+name: Deploy Birthday Songs Monorepo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to Cloudflare
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build packages
+        run: npm run build:packages
+
+      - name: Build customer app
+        run: |
+          cd apps/customer-app
+          npm run build
+
+      - name: Build jose dashboard
+        run: |
+          cd apps/jose-dashboard
+          npm run build
+
+      - name: Build API worker
+        run: |
+          cd apps/api-worker
+          npm run build
+
+      - name: Deploy API Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: apps/api-worker
+          command: deploy
+
+      - name: Deploy Customer App to Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          command: pages deploy apps/customer-app/out --project-name=birthday-songs-customer
+
+      - name: Deploy Jose Dashboard to Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          command: pages deploy apps/jose-dashboard/out --project-name=birthday-songs-dashboard
