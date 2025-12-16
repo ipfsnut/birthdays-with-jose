@@ -103,7 +103,7 @@ export function OrderForm({ isConnected }: OrderFormProps) {
       totalMinted,
       totalRemaining,
       totalLimit
-    ] = supplyInfo
+    ] = supplyInfo as readonly [bigint, bigint, bigint, boolean, bigint, bigint, bigint, boolean, bigint, bigint, bigint]
 
     return {
       birthday: {
