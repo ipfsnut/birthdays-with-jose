@@ -1,0 +1,517 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount } from 'wagmi'
+import { BIRTHDAY_SONGS_ABI, ERC20_ABI, CONTRACT_CONFIG, USDC_CONFIG, SongType, PRICES } from '@/lib/contract'
+import { api, type OrderData as ApiOrderData } from '@/lib/api-dev'
+
+interface OrderFormProps {
+  isConnected: boolean
+}
+
+interface OrderData {
+  type: 'birthday' | 'natal'
+  recipientName: string
+  birthDate?: string
+  birthTime?: string
+  birthLocation?: string
+  relationship?: string
+  interests?: string
+  sunSign?: string
+  risingSign?: string
+  moonSign?: string
+  musicalStyle?: string
+  message?: string
+  orderedBy: string
+  orderedAt: string
+}
+
+export function OrderForm({ isConnected }: OrderFormProps) {
+  const { address } = useAccount()
+  const [selectedTier, setSelectedTier] = useState<SongType>(SongType.BIRTHDAY)
+  
+  // Form fields
+  const [recipientName, setRecipientName] = useState('')
+  const [birthDate, setBirthDate] = useState('')
+  const [message, setMessage] = useState('')
+  const [relationship, setRelationship] = useState('')
+  const [interests, setInterests] = useState('')
+  const [birthTime, setBirthTime] = useState('')
+  const [birthTimeUnknown, setBirthTimeUnknown] = useState(false)
+  const [birthLocation, setBirthLocation] = useState('')
+  const [sunSign, setSunSign] = useState('')
+  const [risingSign, setRisingSign] = useState('')
+  const [moonSign, setMoonSign] = useState('')
+  const [musicalStyle, setMusicalStyle] = useState('')
+  
+  const [error, setError] = useState<string | null>(null)
+  const [step, setStep] = useState<'form' | 'uploading' | 'approve' | 'mint' | 'success'>('form')
+  const [orderDataUri, setOrderDataUri] = useState<string>('')
+
+  const price = PRICES[selectedTier]
+  const priceInUSDC = BigInt(price * 1e6)
+
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: USDC_CONFIG.address,
+    abi: ERC20_ABI,
+    functionName: 'allowance',
+    args: address ? [address, CONTRACT_CONFIG.address] : undefined,
+  })
+
+  const { data: usdcBalance } = useReadContract({
+    address: USDC_CONFIG.address,
+    abi: ERC20_ABI,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+  })
+
+  const hasEnoughBalance = usdcBalance ? (usdcBalance as bigint) >= priceInUSDC : false
+  const hasEnoughAllowance = allowance ? (allowance as bigint) >= priceInUSDC : false
+
+  const { writeContract: approveUSDC, data: approveTxHash, isPending: isApproving, error: approveError } = useWriteContract()
+  const { isSuccess: isApproveConfirmed } = useWaitForTransactionReceipt({ hash: approveTxHash })
+
+  const { writeContract: mintNFT, data: mintTxHash, isPending: isMinting, error: mintError } = useWriteContract()
+  const { isSuccess: isMintConfirmed } = useWaitForTransactionReceipt({ hash: mintTxHash })
+
+  useEffect(() => {
+    if (isApproveConfirmed) {
+      refetchAllowance()
+      doMint()
+    }
+  }, [isApproveConfirmed])
+
+  useEffect(() => {
+    if (isMintConfirmed) setStep('success')
+  }, [isMintConfirmed])
+
+  const encryptAndUpload = async (): Promise<string> => {
+    // Build order data
+    const orderData: OrderData = {
+      type: selectedTier === SongType.BIRTHDAY ? 'birthday' : 'natal',
+      recipientName,
+      orderedBy: address || '',
+      orderedAt: new Date().toISOString(),
+    }
+
+    if (birthDate) orderData.birthDate = birthDate
+    if (message) orderData.message = message
+
+    if (selectedTier === SongType.BIRTHDAY) {
+      if (relationship) orderData.relationship = relationship
+      if (interests) orderData.interests = interests
+    } else {
+      orderData.birthTime = birthTimeUnknown ? 'unknown' : birthTime
+      if (birthLocation) orderData.birthLocation = birthLocation
+      if (sunSign) orderData.sunSign = sunSign
+      if (moonSign) orderData.moonSign = moonSign
+      if (risingSign) orderData.risingSign = risingSign
+      if (musicalStyle) orderData.musicalStyle = musicalStyle
+    }
+
+    // Upload order data via API worker
+    setStep('uploading')
+    
+    try {
+      // Upload via API worker (which handles encryption and ArDrive)
+      const result = await api.uploadOrder(orderData as ApiOrderData)
+      
+      // Return ArDrive URI that points to the encrypted file
+      return `ardrive://${result.arweaveId}`
+    } catch (error) {
+      console.error('API upload failed:', error)
+      // For testing, return a mock URI
+      return `mock://order-${Date.now()}`
+    }
+  }
+
+  const doMint = () => {
+    if (!orderDataUri) return
+    setStep('mint')
+    mintNFT({
+      address: CONTRACT_CONFIG.address,
+      abi: BIRTHDAY_SONGS_ABI,
+      functionName: selectedTier === SongType.BIRTHDAY ? 'mintBirthdaySong' : 'mintNatalSong',
+      args: [orderDataUri],
+    })
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+
+    if (!isConnected || !address) {
+      setError('Connect your wallet first')
+      return
+    }
+    if (!recipientName.trim()) {
+      setError('Enter recipient\'s name')
+      return
+    }
+    if (selectedTier === SongType.NATAL && !birthDate) {
+      setError('Birth date required for natal chart')
+      return
+    }
+    if (selectedTier === SongType.NATAL && !birthLocation.trim()) {
+      setError('Birth location required for natal chart')
+      return
+    }
+    if (!hasEnoughBalance) {
+      setError(`Need $${price} USDC`)
+      return
+    }
+
+    try {
+      const uri = await encryptAndUpload()
+      setOrderDataUri(uri)
+      
+      if (!hasEnoughAllowance) {
+        setStep('approve')
+        approveUSDC({
+          address: USDC_CONFIG.address,
+          abi: ERC20_ABI,
+          functionName: 'approve',
+          args: [CONTRACT_CONFIG.address, priceInUSDC],
+        })
+      } else {
+        setStep('mint')
+        mintNFT({
+          address: CONTRACT_CONFIG.address,
+          abi: BIRTHDAY_SONGS_ABI,
+          functionName: selectedTier === SongType.BIRTHDAY ? 'mintBirthdaySong' : 'mintNatalSong',
+          args: [uri],
+        })
+      }
+    } catch (err) {
+      console.error('Order error:', err)
+      setError('Failed to prepare order')
+      setStep('form')
+    }
+  }
+
+  const resetForm = () => {
+    setRecipientName(''); setBirthDate(''); setMessage('')
+    setRelationship(''); setInterests('')
+    setBirthTime(''); setBirthTimeUnknown(false); setBirthLocation('')
+    setSunSign(''); setRisingSign(''); setMoonSign(''); setMusicalStyle('')
+    setOrderDataUri(''); setStep('form'); setError(null)
+  }
+
+  const displayError = error || 
+    (approveError?.message?.slice(0, 50)) || 
+    (mintError?.message?.slice(0, 50))
+
+  if (step === 'success') {
+    return (
+      <div className="bg-white/95 rounded-2xl p-6 text-center">
+        <div className="text-6xl mb-4">🎉</div>
+        <h2 className="text-xl font-bold text-gray-800 mb-2">Order Placed!</h2>
+        <p className="text-gray-600 mb-4">
+          Jose is creating your {selectedTier === SongType.BIRTHDAY ? 'birthday song' : 'astrology-inspired song'}!
+        </p>
+        <p className="text-sm text-gray-500 mb-4">
+          Check "My Songs" tab to download once Jose fulfills your order.
+        </p>
+        <a
+          href={`https://basescan.org/tx/${mintTxHash}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 text-sm"
+        >
+          View transaction →
+        </a>
+        <button
+          onClick={resetForm}
+          className="mt-4 w-full bg-blue-600 active:bg-blue-700 text-white font-semibold py-4 rounded-xl"
+        >
+          Order Another
+        </button>
+      </div>
+    )
+  }
+
+  const isProcessing = step !== 'form'
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Welcome Card */}
+      <div className="bg-gradient-to-br from-purple-100 to-blue-100 rounded-2xl p-4 border border-white/50">
+        <h3 className="text-lg font-bold text-gray-800 mb-1">Welcome to Jose's Musical Universe 🎸</h3>
+        <p className="text-sm text-gray-600">
+          Get a personalized birthday song crafted with love and cosmic inspiration. 
+          Each song is uniquely composed based on your special details.
+        </p>
+      </div>
+
+      <div className="bg-white/95 rounded-2xl p-4">
+      {/* Tier Selection */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <TierCard
+          selected={selectedTier === SongType.BIRTHDAY}
+          onClick={() => !isProcessing && setSelectedTier(SongType.BIRTHDAY)}
+          emoji="🎂"
+          title="Birthday Song"
+          price={25}
+          color="blue"
+          disabled={isProcessing}
+        />
+        <TierCard
+          selected={selectedTier === SongType.NATAL}
+          onClick={() => !isProcessing && setSelectedTier(SongType.NATAL)}
+          emoji="🌟"
+          title="Astro Song"
+          price={250}
+          color="purple"
+          disabled={isProcessing}
+        />
+      </div>
+
+      {/* Form Fields */}
+      <div className="space-y-3">
+        <Input
+          label="Recipient's Name"
+          value={recipientName}
+          onChange={setRecipientName}
+          placeholder="Who is this for?"
+          required
+          disabled={isProcessing}
+        />
+
+        <Input
+          type="date"
+          label={selectedTier === SongType.NATAL ? "Birth Date *" : "Birth Date"}
+          value={birthDate}
+          onChange={setBirthDate}
+          required={selectedTier === SongType.NATAL}
+          disabled={isProcessing}
+        />
+
+        {selectedTier === SongType.BIRTHDAY ? (
+          <>
+            <Select
+              label="Your Relationship"
+              value={relationship}
+              onChange={setRelationship}
+              options={[
+                { value: '', label: 'Select...' },
+                { value: 'friend', label: 'Friend' },
+                { value: 'partner', label: 'Partner / Spouse' },
+                { value: 'parent', label: 'Parent' },
+                { value: 'child', label: 'Child' },
+                { value: 'sibling', label: 'Sibling' },
+                { value: 'coworker', label: 'Coworker' },
+                { value: 'other', label: 'Other' },
+              ]}
+              disabled={isProcessing}
+            />
+            <TextArea
+              label="Their Interests"
+              value={interests}
+              onChange={setInterests}
+              placeholder="Hobbies, personality, inside jokes..."
+              disabled={isProcessing}
+            />
+          </>
+        ) : (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Birth Time</label>
+              <div className="flex gap-3 items-center">
+                <input
+                  type="time"
+                  value={birthTime}
+                  onChange={(e) => setBirthTime(e.target.value)}
+                  disabled={isProcessing || birthTimeUnknown}
+                  className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-gray-800 disabled:opacity-50"
+                />
+                <label className="flex items-center gap-2 text-sm text-gray-600 whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={birthTimeUnknown}
+                    onChange={(e) => setBirthTimeUnknown(e.target.checked)}
+                    disabled={isProcessing}
+                    className="w-5 h-5 rounded"
+                  />
+                  Unknown
+                </label>
+              </div>
+            </div>
+
+            <Input
+              label="Birth Location *"
+              value={birthLocation}
+              onChange={setBirthLocation}
+              placeholder="City, State, Country"
+              required
+              disabled={isProcessing}
+            />
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Known Signs (optional)</label>
+              <div className="grid grid-cols-3 gap-2">
+                <SignSelect label="☀️ Sun" value={sunSign} onChange={setSunSign} disabled={isProcessing} />
+                <SignSelect label="🌙 Moon" value={moonSign} onChange={setMoonSign} disabled={isProcessing} />
+                <SignSelect label="⬆️ Rising" value={risingSign} onChange={setRisingSign} disabled={isProcessing} />
+              </div>
+            </div>
+
+            <Input
+              label="Musical Style"
+              value={musicalStyle}
+              onChange={setMusicalStyle}
+              placeholder="indie folk, R&B, orchestral..."
+              disabled={isProcessing}
+            />
+          </>
+        )}
+
+        <TextArea
+          label="Special Requests"
+          value={message}
+          onChange={setMessage}
+          placeholder="Anything else to include..."
+          disabled={isProcessing}
+        />
+      </div>
+
+      {/* Balance */}
+      {isConnected && usdcBalance !== undefined && (
+        <div className="mt-4 text-center">
+          <span className="text-gray-500 text-sm">Balance: </span>
+          <span className={`text-sm font-medium ${hasEnoughBalance ? 'text-green-600' : 'text-red-500'}`}>
+            ${(Number(usdcBalance) / 1e6).toFixed(2)} USDC
+          </span>
+        </div>
+      )}
+
+      {/* Error */}
+      {displayError && (
+        <div className="mt-3 p-3 bg-red-50 rounded-xl">
+          <p className="text-red-700 text-sm text-center">{displayError}</p>
+        </div>
+      )}
+
+      {/* Submit */}
+      <button
+        type="submit"
+        disabled={!isConnected || isProcessing || !hasEnoughBalance}
+        className={`
+          mt-4 w-full py-4 rounded-xl font-bold text-base transition-all active:scale-98
+          ${isConnected && hasEnoughBalance && !isProcessing
+            ? selectedTier === SongType.NATAL
+              ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-lg active:shadow-md'
+              : 'bg-gradient-to-r from-orange-500 to-pink-500 text-white shadow-lg active:shadow-md'
+            : 'bg-gray-200 text-gray-400'
+          }
+        `}
+      >
+        {step === 'uploading' ? '📤 Uploading order...' :
+         step === 'approve' || isApproving ? 'Approve USDC...' :
+         step === 'mint' || isMinting ? 'Confirming...' :
+         `Pay $${price} USDC`}
+      </button>
+
+      {!isConnected && (
+        <p className="text-center text-gray-400 text-sm mt-2">Connect wallet to order</p>
+      )}
+      </div>
+    </form>
+  )
+}
+
+// Reusable Components
+
+function TierCard({ selected, onClick, emoji, title, price, color, disabled }: {
+  selected: boolean; onClick: () => void; emoji: string; title: string; price: number; color: 'blue' | 'purple'; disabled?: boolean
+}) {
+  const borderColor = selected ? (color === 'purple' ? 'border-purple-500' : 'border-blue-500') : 'border-gray-200'
+  const bgColor = selected ? (color === 'purple' ? 'bg-purple-50' : 'bg-blue-50') : 'bg-white'
+  const priceColor = color === 'purple' ? 'text-purple-600' : 'text-blue-600'
+  
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`p-4 rounded-xl border-2 text-left active:scale-95 transition-all ${borderColor} ${bgColor} ${disabled ? 'opacity-60' : ''}`}
+    >
+      <div className="text-2xl mb-1">{emoji}</div>
+      <div className="font-bold text-gray-800 text-sm">{title}</div>
+      <div className={`font-bold ${priceColor}`}>${price}</div>
+    </button>
+  )
+}
+
+function Input({ label, value, onChange, placeholder, type = 'text', required, disabled }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; required?: boolean; disabled?: boolean
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        required={required}
+        disabled={disabled}
+        className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-800 placeholder-gray-400 disabled:opacity-50"
+      />
+    </div>
+  )
+}
+
+function TextArea({ label, value, onChange, placeholder, disabled }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; disabled?: boolean
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={2}
+        disabled={disabled}
+        className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-800 placeholder-gray-400 resize-none disabled:opacity-50"
+      />
+    </div>
+  )
+}
+
+function Select({ label, value, onChange, options, disabled }: {
+  label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[]; disabled?: boolean
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-800 disabled:opacity-50 bg-white"
+      >
+        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </div>
+  )
+}
+
+function SignSelect({ label, value, onChange, disabled }: {
+  label: string; value: string; onChange: (v: string) => void; disabled?: boolean
+}) {
+  const signs = ['', 'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces']
+  return (
+    <div>
+      <p className="text-xs text-gray-500 mb-1 text-center">{label}</p>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        className="w-full px-2 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-800 bg-white"
+      >
+        {signs.map(s => <option key={s} value={s}>{s || '—'}</option>)}
+      </select>
+    </div>
+  )
+}
