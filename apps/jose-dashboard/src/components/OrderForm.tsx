@@ -48,8 +48,25 @@ export function OrderForm({ isConnected }: OrderFormProps) {
   const [step, setStep] = useState<'form' | 'uploading' | 'approve' | 'mint' | 'success'>('form')
   const [orderDataUri, setOrderDataUri] = useState<string>('')
 
-  const price = PRICES[selectedTier]
-  const priceInUSDC = BigInt(price * 1e6)
+  // Read actual prices from contract
+  const { data: birthdayPrice } = useReadContract({
+    address: CONTRACT_CONFIG.address,
+    abi: BIRTHDAY_SONGS_ABI,
+    functionName: 'birthdayPrice',
+  })
+
+  const { data: natalPrice } = useReadContract({
+    address: CONTRACT_CONFIG.address,
+    abi: BIRTHDAY_SONGS_ABI,
+    functionName: 'natalPrice',
+  })
+
+  // Use contract price or fallback to hardcoded
+  const priceInUSDC = selectedTier === SongType.BIRTHDAY 
+    ? (birthdayPrice as bigint) || BigInt(PRICES[selectedTier] * 1e6)
+    : (natalPrice as bigint) || BigInt(PRICES[selectedTier] * 1e6)
+  
+  const priceInDollars = Number(priceInUSDC) / 1e6
 
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: USDC_CONFIG.address,
@@ -157,7 +174,7 @@ export function OrderForm({ isConnected }: OrderFormProps) {
       return
     }
     if (!hasEnoughBalance) {
-      setError(`Need $${price} USDC`)
+      setError(`Need $${priceInDollars.toFixed(2)} USDC`)
       return
     }
 
@@ -251,7 +268,7 @@ export function OrderForm({ isConnected }: OrderFormProps) {
           onClick={() => !isProcessing && setSelectedTier(SongType.BIRTHDAY)}
           emoji="🎂"
           title="Birthday Song"
-          price={25}
+          price={birthdayPrice ? Number(birthdayPrice) / 1e6 : 25}
           color="blue"
           disabled={isProcessing}
         />
@@ -260,7 +277,7 @@ export function OrderForm({ isConnected }: OrderFormProps) {
           onClick={() => !isProcessing && setSelectedTier(SongType.NATAL)}
           emoji="🌟"
           title="Astro Song"
-          price={250}
+          price={natalPrice ? Number(natalPrice) / 1e6 : 250}
           color="purple"
           disabled={isProcessing}
         />
@@ -408,7 +425,7 @@ export function OrderForm({ isConnected }: OrderFormProps) {
         {step === 'uploading' ? '📤 Uploading order...' :
          step === 'approve' || isApproving ? 'Approve USDC...' :
          step === 'mint' || isMinting ? 'Confirming...' :
-         `Pay $${price} USDC`}
+         `Pay $${priceInDollars.toFixed(2)} USDC`}
       </button>
 
       {!isConnected && (
