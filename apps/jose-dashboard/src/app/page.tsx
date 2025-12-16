@@ -49,12 +49,30 @@ export default function Home() {
     initSDK()
   }, [])
 
-  // Auto-connect wallet
-  useEffect(() => {
-    if (isSDKLoaded && !isConnected && connectors.length > 0) {
-      connect({ connector: connectors[0] })
+  // Manual connect function - don't auto-connect for dashboard
+  const handleConnect = async () => {
+    console.log('Connect button clicked, connectors:', connectors)
+    
+    // Prefer MetaMask first, then injected, then others
+    const metaMaskConnector = connectors.find(c => c.id === 'metaMaskSDK')
+    const injectedConnector = connectors.find(c => c.id === 'injected')
+    
+    const preferredConnector = metaMaskConnector || injectedConnector || connectors[0]
+    
+    if (preferredConnector) {
+      console.log('Attempting to connect with connector:', preferredConnector)
+      try {
+        await connect({ connector: preferredConnector })
+      } catch (error) {
+        console.error('Connection failed:', error)
+        // Try fallback to injected if MetaMask failed
+        if (preferredConnector !== injectedConnector && injectedConnector) {
+          console.log('Trying fallback injected connector')
+          await connect({ connector: injectedConnector })
+        }
+      }
     }
-  }, [isSDKLoaded, isConnected, connect, connectors])
+  }
 
   if (!isSDKLoaded) {
     return (
@@ -94,7 +112,7 @@ export default function Home() {
             </div>
           ) : (
             <button
-              onClick={() => connectors[0] && connect({ connector: connectors[0] })}
+              onClick={handleConnect}
               className="bg-white/20 active:bg-white/30 rounded-full px-3 py-1.5 text-white text-xs font-medium"
             >
               Connect
