@@ -77,7 +77,7 @@ export const TOTAL_SUPPLY = SUPPLY_LIMITS[SongType.BIRTHDAY] + SUPPLY_LIMITS[Son
 
 // Contract addresses (Base mainnet)
 export const CONTRACT_ADDRESSES = {
-  BIRTHDAY_SONGS: '0x0000000000000000000000000000000000000000', // Update after deployment
+  BIRTHDAY_SONGS: '0xf1bbdbadc2373bff02a0f2de8a4e449204cb2052', // Deployed contract
   USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
   PLATFORM_WALLET: '0xd31c0c3bddacc482aa5fe64d27cddbab72864733',
 } as const
