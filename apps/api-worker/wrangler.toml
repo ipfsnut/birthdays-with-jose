@@ -1,6 +1,6 @@
 name = "birthday-songs-api"
 main = "src/index.ts"
-compatibility_date = "2023-12-01"
+compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 account_id = "2592aa1c39699422b870340232f9ad38"
 

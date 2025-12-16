@@ -8,7 +8,7 @@ const nextConfig = {
   },
   env: {
     NEXT_PUBLIC_API_URL: process.env.NODE_ENV === 'production' 
-      ? 'https://birthday-songs-api.your-subdomain.workers.dev'
+      ? 'https://birthday-songs-api.dylan-259.workers.dev'
       : 'http://localhost:8787'
   },
   async rewrites() {
