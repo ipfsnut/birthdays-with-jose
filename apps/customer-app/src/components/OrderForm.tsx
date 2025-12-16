@@ -50,12 +50,21 @@ export function OrderForm({ isConnected }: OrderFormProps) {
   const [step, setStep] = useState<'form' | 'uploading' | 'approve' | 'mint' | 'success'>('form')
   const [orderDataUri, setOrderDataUri] = useState<string>('')
 
-  const price = PRICES[selectedTier]
-  const priceInUSDC = BigInt(price * 1e6)
-
-  // Batch all contract reads into a single multicall
+  // Batch all contract reads including prices into a single multicall
   const { data: contractData, refetch: refetchContractData, error: contractError, isLoading: contractLoading } = useReadContracts({
     contracts: [
+      {
+        address: CONTRACT_CONFIG.address,
+        abi: BIRTHDAY_SONGS_ABI,
+        functionName: 'birthdayPrice',
+        chainId: CHAIN_ID,
+      },
+      {
+        address: CONTRACT_CONFIG.address,
+        abi: BIRTHDAY_SONGS_ABI,
+        functionName: 'natalPrice',
+        chainId: CHAIN_ID,
+      },
       {
         address: USDC_CONFIG.address,
         abi: ERC20_ABI,
@@ -79,9 +88,18 @@ export function OrderForm({ isConnected }: OrderFormProps) {
     ],
   })
 
-  const allowance = contractData?.[0]?.result
-  const usdcBalance = contractData?.[1]?.result
-  const supplyInfo = contractData?.[2]?.result
+  const birthdayPrice = contractData?.[0]?.result as bigint
+  const natalPrice = contractData?.[1]?.result as bigint
+  const allowance = contractData?.[2]?.result
+  const usdcBalance = contractData?.[3]?.result
+  const supplyInfo = contractData?.[4]?.result
+
+  // Use contract price or fallback to hardcoded
+  const priceInUSDC = selectedTier === SongType.BIRTHDAY 
+    ? birthdayPrice || BigInt(PRICES[selectedTier] * 1e6)
+    : natalPrice || BigInt(PRICES[selectedTier] * 1e6)
+  
+  const priceInDollars = Number(priceInUSDC) / 1e6
 
 
   const hasEnoughBalance = usdcBalance ? (usdcBalance as bigint) >= priceInUSDC : false
@@ -221,7 +239,7 @@ export function OrderForm({ isConnected }: OrderFormProps) {
       return
     }
     if (!hasEnoughBalance) {
-      setError(`Need $${price} USDC`)
+      setError(`Need $${priceInDollars.toFixed(2)} USDC`)
       return
     }
 
@@ -350,7 +368,7 @@ export function OrderForm({ isConnected }: OrderFormProps) {
           onClick={() => !isProcessing && setSelectedTier(SongType.BIRTHDAY)}
           emoji="🎂"
           title="Birthday Song"
-          price={25}
+          price={birthdayPrice ? Number(birthdayPrice) / 1e6 : 25}
           color="blue"
           disabled={isProcessing}
           supplyInfo={supplyData?.birthday}
@@ -360,7 +378,7 @@ export function OrderForm({ isConnected }: OrderFormProps) {
           onClick={() => !isProcessing && setSelectedTier(SongType.NATAL)}
           emoji="🌟"
           title="Astro Song"
-          price={250}
+          price={natalPrice ? Number(natalPrice) / 1e6 : 250}
           color="purple"
           disabled={isProcessing}
           supplyInfo={supplyData?.natal}
@@ -532,7 +550,7 @@ export function OrderForm({ isConnected }: OrderFormProps) {
          step === 'uploading' ? '📤 Uploading order...' :
          step === 'approve' || isApproving ? 'Approve USDC...' :
          step === 'mint' || isMinting ? 'Confirming...' :
-         `Pay $${price} USDC`}
+         `Pay $${priceInDollars.toFixed(2)} USDC`}
       </button>
 
       {!isConnected && (
@@ -570,7 +588,7 @@ function TierCard({ selected, onClick, emoji, title, price, color, disabled, sup
       <div className="text-2xl mb-1">{emoji}</div>
       <div className="font-bold text-gray-800 text-sm">{title}</div>
       <div className={`font-bold ${isSoldOut ? 'text-red-500' : priceColor}`}>
-        {isSoldOut ? 'SOLD OUT' : `$${price}`}
+        {isSoldOut ? 'SOLD OUT' : `$${price.toFixed(2)}`}
       </div>
       {supplyInfo && (
         <div className={`text-xs mt-1 ${

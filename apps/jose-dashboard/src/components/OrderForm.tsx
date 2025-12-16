@@ -24,6 +24,8 @@ interface OrderData {
   message?: string
   orderedBy: string
   orderedAt: string
+  allowPublication: boolean
+  tokenId?: number
 }
 
 export function OrderForm({ isConnected }: OrderFormProps) {
@@ -109,6 +111,7 @@ export function OrderForm({ isConnected }: OrderFormProps) {
       recipientName,
       orderedBy: address || '',
       orderedAt: new Date().toISOString(),
+      allowPublication: false, // Keep orders private by default
     }
 
     if (birthDate) orderData.birthDate = birthDate

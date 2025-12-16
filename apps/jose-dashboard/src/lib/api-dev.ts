@@ -72,7 +72,7 @@ async function mockDecrypt(encrypted: string): Promise<any> {
 }
 
 // API base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://birthday-songs-api.dylan-259.workers.dev'
 
 /**
  * Development API client
@@ -131,14 +131,10 @@ class DevBirthdaySongsAPI {
    * Upload order
    */
   async uploadOrder(orderData: OrderData): Promise<UploadResponse> {
-    // Mock encryption for development
-    const encryptedData = await mockEncrypt(orderData)
-    
     return this.request<UploadResponse>('/api/orders/upload', {
       method: 'POST',
       body: JSON.stringify({
-        encryptedData,
-        driveId: 'dev-drive-id',
+        orderData: orderData,
         metadata: {
           tokenId: orderData.tokenId,
           type: orderData.type,
@@ -151,18 +147,11 @@ class DevBirthdaySongsAPI {
    * Upload song
    */
   async uploadSong(tokenId: number, songBase64: string): Promise<UploadResponse> {
-    const songKey = `song-${tokenId}-${Date.now()}`
-    const encryptedData = await mockEncrypt(songBase64)
-    
     return this.request<UploadResponse>('/api/songs/upload', {
       method: 'POST',
       body: JSON.stringify({
-        encryptedData,
-        tokenId,
-        songKey,
-        metadata: {
-          filename: `birthday-song-${tokenId}.mp3`,
-        },
+        songData: songBase64,
+        tokenId: tokenId,
       }),
     })
   }

@@ -41,9 +41,15 @@ const app = new Hono<{ Bindings: Env }>()
 
 // CORS middleware
 app.use('*', cors({
-  origin: ['https://birthday-songs.pages.dev', 'http://localhost:3000'],
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowHeaders: ['Content-Type', 'Authorization']
+  origin: [
+    'https://birthday-songs.pages.dev', 
+    'https://birthdays-with-jose-dashboard.pages.dev',
+    'http://localhost:3000',
+    'http://localhost:3001'
+  ],
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }))
 
 // Health check
@@ -107,10 +113,22 @@ app.post('/api/fund', async (c) => {
 // Upload order data to ArDrive (for now, single uploads with unique tags)
 app.post('/api/orders/upload', async (c) => {
   try {
-    const { orderData, metadata } = await c.req.json()
+    const body = await c.req.json()
+    console.log('Order upload request:', JSON.stringify(body, null, 2))
+    
+    const { orderData, metadata } = body
+    
+    if (!orderData) {
+      return c.json({ error: 'Missing orderData in request body' }, 400)
+    }
+    
+    if (!metadata?.tokenId) {
+      return c.json({ error: 'Missing tokenId in metadata' }, 400)
+    }
+    
     const turbo = await getTurboClient(c.env)
     
-    const tokenId = metadata.tokenId || Date.now()
+    const tokenId = metadata.tokenId
     
     // Upload order data with unique token-based security
     const orderDataStr = JSON.stringify(orderData)
@@ -160,14 +178,29 @@ app.post('/api/orders/upload', async (c) => {
     
   } catch (error) {
     console.error('Order upload failed:', error)
-    return c.json({ error: 'Failed to upload order' }, 500)
+    return c.json({ 
+      error: 'Failed to upload order',
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    }, 500)
   }
 })
 
 // Upload song to ArDrive (linked to specific order)
 app.post('/api/songs/upload', async (c) => {
   try {
-    const { songData, tokenId } = await c.req.json() // Simplified parameters
+    const body = await c.req.json()
+    console.log('Song upload request:', JSON.stringify({ tokenId: body.tokenId, dataLength: body.songData?.length }, null, 2))
+    
+    const { songData, tokenId } = body
+    
+    if (!songData) {
+      return c.json({ error: 'Missing songData in request body' }, 400)
+    }
+    
+    if (!tokenId) {
+      return c.json({ error: 'Missing tokenId in request body' }, 400)
+    }
+    
     const turbo = await getTurboClient(c.env)
     
     // Upload song file to ArDrive
@@ -215,7 +248,10 @@ app.post('/api/songs/upload', async (c) => {
     
   } catch (error) {
     console.error('Song upload failed:', error)
-    return c.json({ error: 'Failed to upload song' }, 500)
+    return c.json({ 
+      error: 'Failed to upload song',
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    }, 500)
   }
 })
 
