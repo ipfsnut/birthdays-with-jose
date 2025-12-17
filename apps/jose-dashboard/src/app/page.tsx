@@ -99,7 +99,7 @@ export default function Home() {
             </div>
             <div>
               <h1 className="text-lg font-bold text-white leading-tight">Jose's Birthday Songs</h1>
-              <p className="text-white/70 text-xs">Custom astrology-inspired melodies</p>
+              <p className="text-white/70 text-xs">Custom natal chart-inspired melodies</p>
             </div>
           </div>
           

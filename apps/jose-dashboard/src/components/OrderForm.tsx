@@ -259,7 +259,7 @@ export function OrderForm({ isConnected }: OrderFormProps) {
       <div className="bg-gradient-to-br from-purple-100 to-blue-100 rounded-2xl p-4 border border-white/50">
         <h3 className="text-lg font-bold text-gray-800 mb-1">Welcome to Jose's Musical Universe 🎸</h3>
         <p className="text-sm text-gray-600">
-          Get a personalized birthday song crafted with love and cosmic inspiration. 
+          Get a personalized birthday song crafted with love and natal chart inspiration. 
           Each song is uniquely composed based on your special details.
         </p>
       </div>

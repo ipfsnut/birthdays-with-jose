@@ -10,17 +10,7 @@ import "@openzeppelin/contracts/utils/Base64.sol";
 
 /**
  * @title BirthdaySongs
- * @dev NFT contract for custom song orders with Lit Protocol encryption
- * 
- * Architecture:
- * - Order data: encrypted on Arweave, only creator can decrypt
- * - Song files: encrypted on Arweave, creator OR NFT holder can decrypt
- * - Payments: USDC to contract (creator withdraws)
- * - Platform fee: small ETH fee on fulfillment (covers Lit + Arweave costs)
- * 
- * Tiers:
- * - BIRTHDAY: $25 - Fun birthday song
- * - NATAL: $250 - Studio quality natal chart-inspired song
+ * @dev NFT contract for custom song orders
  */
 contract BirthdaySongs is ERC721, Ownable {
     using Strings for uint256;
@@ -54,12 +44,12 @@ contract BirthdaySongs is ERC721, Ownable {
     
     struct Order {
         SongType songType;
-        string orderDataUri;    // Lit-encrypted order details on Arweave
+        string orderDataUri;
         address orderedBy;
         uint256 orderedAt;
         uint256 pricePaid;
         bool fulfilled;
-        string songUri;         // Lit-encrypted song on Arweave
+        string songUri;
     }
     
     mapping(uint256 => Order) public orders;
@@ -92,7 +82,6 @@ contract BirthdaySongs is ERC721, Ownable {
     
     /**
      * @dev Mint a birthday song order ($25)
-     * @param orderDataUri Arweave URI containing Lit-encrypted order details
      */
     function mintBirthdaySong(string calldata orderDataUri) external returns (uint256) {
         require(birthdaysMinted < BIRTHDAY_SUPPLY_LIMIT, "Birthday songs sold out");
@@ -102,7 +91,6 @@ contract BirthdaySongs is ERC721, Ownable {
     
     /**
      * @dev Mint a natal chart song order ($250)
-     * @param orderDataUri Arweave URI containing Lit-encrypted order details
      */
     function mintNatalSong(string calldata orderDataUri) external returns (uint256) {
         require(natalsMinted < NATAL_SUPPLY_LIMIT, "Natal chart songs sold out");
@@ -140,8 +128,6 @@ contract BirthdaySongs is ERC721, Ownable {
     
     /**
      * @dev Creator marks an order as fulfilled
-     * @param tokenId The NFT token ID
-     * @param songUri Arweave URI of the Lit-encrypted song
      */
     function fulfillOrder(uint256 tokenId, string calldata songUri) external onlyOwner {
         require(_ownerOf(tokenId) != address(0), "Token does not exist");
@@ -157,8 +143,6 @@ contract BirthdaySongs is ERC721, Ownable {
     
     /**
      * @dev Update prices (in USDC with 6 decimals)
-     * @notice Price changes affect pending transactions. Consider implementing a timelock
-     * or price commitment scheme for production to prevent race conditions.
      */
     function setPrices(uint256 _birthdayPrice, uint256 _natalPrice) external onlyOwner {
         birthdayPrice = _birthdayPrice;
@@ -166,9 +150,6 @@ contract BirthdaySongs is ERC721, Ownable {
         emit PricesUpdated(_birthdayPrice, _natalPrice);
     }
     
-    /**
-     * @dev Update platform wallet address
-     */
     function setPlatformWallet(address _platformWallet) external onlyOwner {
         require(_platformWallet != address(0), "Invalid platform wallet");
         address oldWallet = platformWallet;
@@ -176,14 +157,6 @@ contract BirthdaySongs is ERC721, Ownable {
         emit PlatformWalletUpdated(oldWallet, _platformWallet);
     }
     
-    /**
-     * @dev Withdraw all USDC to owner
-     */
-    /**
-     * @dev Withdraw accumulated USDC payments with platform fee deduction
-     * Platform fee: $0.50 USDC per order goes to platform wallet
-     * Remaining balance goes to contract owner
-     */
     function withdraw() external onlyOwner {
         uint256 balance = USDC.balanceOf(address(this));
         require(balance > 0, "No funds to withdraw");
@@ -228,9 +201,6 @@ contract BirthdaySongs is ERC721, Ownable {
         return USDC.balanceOf(address(this));
     }
     
-    /**
-     * @dev Get supply information for all tiers
-     */
     function getSupplyInfo() external view returns (
         uint256 birthdaysMinted_,
         uint256 birthdaysRemaining,
@@ -259,9 +229,6 @@ contract BirthdaySongs is ERC721, Ownable {
         totalLimit = TOTAL_SUPPLY_LIMIT;
     }
     
-    /**
-     * @dev Returns token URI with on-chain SVG
-     */
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_ownerOf(tokenId) != address(0), "Token does not exist");
         
