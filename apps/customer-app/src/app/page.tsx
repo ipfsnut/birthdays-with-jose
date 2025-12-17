@@ -31,26 +31,33 @@ export default function Home() {
   // Initialize Farcaster Miniapp SDK
   useEffect(() => {
     const initSDK = async () => {
+      console.log('Initializing Farcaster SDK...')
       try {
         const { sdk } = await import('@farcaster/miniapp-sdk')
+        console.log('SDK imported successfully')
         
         // Get user context from Farcaster
         const context = await sdk.context
+        console.log('SDK context:', context)
+        
         if (context?.user) {
+          console.log('Farcaster user found:', context.user)
           setFarcasterUser({
             fid: context.user.fid,
             username: context.user.username,
           })
-          
-          // Don't auto-connect here - do it in separate effect after connectors load
+        } else {
+          console.log('No Farcaster user in context')
         }
         
         // Signal to Farcaster that the miniapp is ready
         await sdk.actions.ready()
+        console.log('SDK ready signal sent')
         setIsSDKLoaded(true)
       } catch (error) {
         console.error('Farcaster SDK init error:', error)
         // Fallback for non-Farcaster environments (like testing in browser)
+        console.log('Running in non-Farcaster environment')
         setIsSDKLoaded(true)
       }
     }
@@ -59,22 +66,32 @@ export default function Home() {
 
   // Auto-connect wallet when in Farcaster environment and connectors are ready
   useEffect(() => {
+    console.log('Auto-connect check:', {
+      farcasterUser: !!farcasterUser,
+      isConnected,
+      connectorsLength: connectors.length,
+      isSDKLoaded,
+      shouldAutoConnect: farcasterUser && !isConnected && connectors.length > 0 && isSDKLoaded
+    })
+    
     if (farcasterUser && !isConnected && connectors.length > 0 && isSDKLoaded) {
       console.log('Auto-connecting Farcaster wallet for user:', farcasterUser.username)
-      console.log('Available connectors:', connectors)
+      console.log('Available connectors:', connectors.map(c => ({ id: c.id, name: c.name })))
       
       // Try injected connector first (best for Farcaster), then any available
       const injectedConnector = connectors.find(c => c.id === 'injected')
       const connector = injectedConnector || connectors[0]
       
       if (connector) {
-        console.log('Attempting auto-connect with connector:', connector.id)
+        console.log('Attempting auto-connect with connector:', connector.id, connector.name)
         try {
           connect({ connector })
           console.log('Auto-connect initiated')
         } catch (error) {
           console.log('Auto-connect failed, user can connect manually:', error)
         }
+      } else {
+        console.log('No connector found for auto-connect')
       }
     }
   }, [farcasterUser, isConnected, connectors, isSDKLoaded, connect])
