@@ -56,31 +56,17 @@ export default function Home() {
 
   // Auto-connect wagmi to Farcaster's embedded wallet
   useEffect(() => {
-    if (farcasterUser && !isConnected && connectors.length > 0 && isSDKLoaded) {
-      console.log('Attempting auto-connect to Privy wallet...', { connectors: connectors.map(c => c.id) })
-      // Farcaster has Privy wallet embedded - try connecting wagmi to it
-      const injectedConnector = connectors.find(c => c.id === 'injected')
-      if (injectedConnector) {
-        console.log('Found injected connector, connecting...')
-        connect({ connector: injectedConnector })
-          .then(() => console.log('Wagmi connected successfully'))
-          .catch((err) => console.log('Wagmi connection failed:', err))
-      }
-    }
-  }, [farcasterUser, isConnected, connectors, isSDKLoaded, connect])
-  
-  // Force reconnect periodically if still not connected but should be
-  useEffect(() => {
-    if (farcasterUser && !isConnected && isSDKLoaded) {
-      const interval = setInterval(() => {
-        const injectedConnector = connectors.find(c => c.id === 'injected')
-        if (injectedConnector && !isConnected) {
-          console.log('Retrying wagmi connection...')
-          connect({ connector: injectedConnector }).catch(() => {})
-        }
-      }, 2000)
+    if (farcasterUser && !isConnected && isSDKLoaded && connectors.length > 0) {
+      console.log('Attempting to connect to Privy wallet...')
+      console.log('Available connectors:', connectors.map(c => ({ id: c.id, name: c.name })))
       
-      return () => clearInterval(interval)
+      const farcasterConnector = connectors.find(c => c.id === 'farcasterMiniApp')
+      if (farcasterConnector) {
+        console.log('Connecting to Farcaster Frame connector...')
+        connect({ connector: farcasterConnector })
+      } else {
+        console.error('No Farcaster Frame connector found!')
+      }
     }
   }, [farcasterUser, isConnected, isSDKLoaded, connectors, connect])
 

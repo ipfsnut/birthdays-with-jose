@@ -229,7 +229,7 @@ export function OrderForm({ isConnected, farcasterUser }: OrderFormProps) {
     e.preventDefault()
     setError(null)
 
-    // In Farcaster context, skip wallet connection check - Privy handles it
+    // In Farcaster context, we're always "connected" via Privy
     if (!isConnected) {
       setError('Please connect your wallet')
       return
