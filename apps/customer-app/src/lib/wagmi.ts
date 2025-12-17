@@ -6,7 +6,7 @@ import { injected } from 'wagmi/connectors'
 export const config = createConfig({
   chains: [base],
   transports: {
-    [base.id]: http()
+    [base.id]: http('https://mainnet.base.org')
   },
   connectors: [
     injected(), // Farcaster's Privy wallet

@@ -140,7 +140,7 @@ export default function Home() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 pb-8 safe-bottom">
-        {activeTab === 'order' && <OrderForm isConnected={!!farcasterUser} />}
+        {activeTab === 'order' && <OrderForm isConnected={!!farcasterUser} farcasterUser={farcasterUser} />}
         {activeTab === 'my-songs' && <MyOrders address={address} />}
         {activeTab === 'creator' && isCreator && <CreatorDashboard />}
       </div>

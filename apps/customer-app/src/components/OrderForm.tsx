@@ -7,6 +7,7 @@ import { api, type OrderData as ApiOrderData } from '@/lib/api-dev'
 
 interface OrderFormProps {
   isConnected: boolean
+  farcasterUser?: { fid: number; username?: string } | null
 }
 
 interface OrderData {
@@ -27,8 +28,8 @@ interface OrderData {
   allowPublication: boolean
 }
 
-export function OrderForm({ isConnected }: OrderFormProps) {
-  const { address } = useAccount()
+export function OrderForm({ isConnected, farcasterUser }: OrderFormProps) {
+  const { address, isConnected: wagmiConnected } = useAccount()
   const [selectedTier, setSelectedTier] = useState<SongType>(SongType.BIRTHDAY)
   
   // Form fields
@@ -51,6 +52,7 @@ export function OrderForm({ isConnected }: OrderFormProps) {
   const [orderDataUri, setOrderDataUri] = useState<string>('')
 
   // Batch all contract reads including prices into a single multicall
+  // Skip user-specific calls if no address is available
   const { data: contractData, refetch: refetchContractData, error: contractError, isLoading: contractLoading } = useReadContracts({
     contracts: [
       {
@@ -65,20 +67,20 @@ export function OrderForm({ isConnected }: OrderFormProps) {
         functionName: 'natalPrice',
         chainId: CHAIN_ID,
       },
-      {
+      ...(address ? [{
         address: USDC_CONFIG.address,
         abi: ERC20_ABI,
         functionName: 'allowance',
-        args: address ? [address, CONTRACT_CONFIG.address] : undefined,
+        args: [address, CONTRACT_CONFIG.address] as const,
         chainId: CHAIN_ID,
-      },
-      {
+      }] : []),
+      ...(address ? [{
         address: USDC_CONFIG.address,
         abi: ERC20_ABI,
         functionName: 'balanceOf',
-        args: address ? [address] : undefined,
+        args: [address] as const,
         chainId: CHAIN_ID,
-      },
+      }] : []),
       {
         address: CONTRACT_CONFIG.address,
         abi: BIRTHDAY_SONGS_ABI,
@@ -90,9 +92,14 @@ export function OrderForm({ isConnected }: OrderFormProps) {
 
   const birthdayPrice = contractData?.[0]?.result as bigint
   const natalPrice = contractData?.[1]?.result as bigint
-  const allowance = contractData?.[2]?.result
-  const usdcBalance = contractData?.[3]?.result
-  const supplyInfo = contractData?.[4]?.result
+  // Dynamic array indices based on whether address exists
+  const allowanceIndex = address ? 2 : -1
+  const balanceIndex = address ? 3 : -1
+  const supplyIndex = address ? 4 : 2
+  
+  const allowance = allowanceIndex >= 0 ? contractData?.[allowanceIndex]?.result : undefined
+  const usdcBalance = balanceIndex >= 0 ? contractData?.[balanceIndex]?.result : undefined
+  const supplyInfo = contractData?.[supplyIndex]?.result
 
   // Use contract price or fallback to hardcoded
   const priceInUSDC = selectedTier === SongType.BIRTHDAY 
@@ -224,7 +231,7 @@ export function OrderForm({ isConnected }: OrderFormProps) {
 
     // In Farcaster context, skip wallet connection check - Privy handles it
     if (!isConnected) {
-      setError('Wallet not ready')
+      setError('Please connect your wallet')
       return
     }
     if (!recipientName.trim()) {
@@ -239,7 +246,8 @@ export function OrderForm({ isConnected }: OrderFormProps) {
       setError('Birth location required for natal chart')
       return
     }
-    if (!hasEnoughBalance) {
+    // Skip balance check in Farcaster context - Privy will handle insufficient funds
+    if (!farcasterUser && !hasEnoughBalance) {
       setError(`Need $${priceInDollars.toFixed(2)} USDC`)
       return
     }
@@ -525,6 +533,21 @@ export function OrderForm({ isConnected }: OrderFormProps) {
           </span>
         </div>
       )}
+      
+      {/* Debug info for troubleshooting - always show for now */}
+      <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
+        <div>isConnected (prop): {String(isConnected)}</div>
+        <div>wagmiConnected: {String(wagmiConnected)}</div>
+        <div>address: {address || 'none'}</div>
+        <div>farcasterUser: {farcasterUser ? `@${farcasterUser.username}` : 'none'}</div>
+        <div>hasEnoughBalance: {String(hasEnoughBalance)}</div>
+        <div>usdcBalance: {usdcBalance ? (Number(usdcBalance) / 1e6).toFixed(2) : 'loading'}</div>
+        <div>contractData: {contractData ? 'loaded' : 'loading'}</div>
+        <div>contractError: {contractError ? String(contractError) : 'ok'}</div>
+        <div>contractLoading: {String(contractLoading)}</div>
+        <div>priceInUSDC: {priceInUSDC.toString()}</div>
+        <div>supplyInfo: {supplyInfo ? 'loaded' : 'loading'}</div>
+      </div>
 
       {/* Error */}
       {displayError && (
@@ -536,10 +559,10 @@ export function OrderForm({ isConnected }: OrderFormProps) {
       {/* Submit */}
       <button
         type="submit"
-        disabled={!isConnected || isProcessing || !hasEnoughBalance || !!(supplyData && (selectedTier === SongType.BIRTHDAY ? supplyData.birthday.soldOut : supplyData.natal.soldOut))}
+        disabled={!isConnected || isProcessing || (!farcasterUser && !hasEnoughBalance) || !!(supplyData && (selectedTier === SongType.BIRTHDAY ? supplyData.birthday.soldOut : supplyData.natal.soldOut))}
         className={`
           mt-4 w-full py-4 rounded-xl font-bold text-base transition-all active:scale-98
-          ${isConnected && hasEnoughBalance && !isProcessing && (!supplyData || !(selectedTier === SongType.BIRTHDAY ? supplyData.birthday.soldOut : supplyData.natal.soldOut))
+          ${isConnected && (farcasterUser || hasEnoughBalance) && !isProcessing && (!supplyData || !(selectedTier === SongType.BIRTHDAY ? supplyData.birthday.soldOut : supplyData.natal.soldOut))
             ? selectedTier === SongType.NATAL
               ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-lg active:shadow-md'
               : 'bg-gradient-to-r from-orange-500 to-pink-500 text-white shadow-lg active:shadow-md'
