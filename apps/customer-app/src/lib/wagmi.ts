@@ -15,8 +15,8 @@ export const config = createConfig({
       metadata: {
         name: 'Jose\'s Birthday Songs',
         description: 'Custom natal chart-inspired melodies',
-        url: 'https://birthday-songs.pages.dev',
-        icons: ['https://birthday-songs.pages.dev/JoseWarplet.png']
+        url: 'https://birthdays-with-jose.pages.dev',
+        icons: ['https://birthdays-with-jose.pages.dev/JoseWarplet.png']
       }
     }),
   ],

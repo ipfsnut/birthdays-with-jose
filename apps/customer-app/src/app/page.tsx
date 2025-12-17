@@ -84,12 +84,16 @@ export default function Home() {
       
       if (connector) {
         console.log('Attempting auto-connect with connector:', connector.id, connector.name)
-        try {
-          connect({ connector })
-          console.log('Auto-connect initiated')
-        } catch (error) {
-          console.log('Auto-connect failed, user can connect manually:', error)
-        }
+        
+        // Add a small delay to let the Farcaster environment settle
+        setTimeout(async () => {
+          try {
+            const result = await connect({ connector })
+            console.log('Auto-connect result:', result)
+          } catch (error) {
+            console.log('Auto-connect failed, user can connect manually:', error)
+          }
+        }, 500)
       } else {
         console.log('No connector found for auto-connect')
       }
