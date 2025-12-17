@@ -57,17 +57,32 @@ export default function Home() {
   // Auto-connect wagmi to Farcaster's embedded wallet
   useEffect(() => {
     if (farcasterUser && !isConnected && connectors.length > 0 && isSDKLoaded) {
+      console.log('Attempting auto-connect to Privy wallet...', { connectors: connectors.map(c => c.id) })
       // Farcaster has Privy wallet embedded - try connecting wagmi to it
       const injectedConnector = connectors.find(c => c.id === 'injected')
       if (injectedConnector) {
-        try {
-          connect({ connector: injectedConnector })
-        } catch {
-          // Silent fail - Farcaster context doesn't require wagmi connection for UX
-        }
+        console.log('Found injected connector, connecting...')
+        connect({ connector: injectedConnector })
+          .then(() => console.log('Wagmi connected successfully'))
+          .catch((err) => console.log('Wagmi connection failed:', err))
       }
     }
   }, [farcasterUser, isConnected, connectors, isSDKLoaded, connect])
+  
+  // Force reconnect periodically if still not connected but should be
+  useEffect(() => {
+    if (farcasterUser && !isConnected && isSDKLoaded) {
+      const interval = setInterval(() => {
+        const injectedConnector = connectors.find(c => c.id === 'injected')
+        if (injectedConnector && !isConnected) {
+          console.log('Retrying wagmi connection...')
+          connect({ connector: injectedConnector }).catch(() => {})
+        }
+      }, 2000)
+      
+      return () => clearInterval(interval)
+    }
+  }, [farcasterUser, isConnected, isSDKLoaded, connectors, connect])
 
   // Manual connect (disabled - now handled by auto-connect above)
   // useEffect(() => {
