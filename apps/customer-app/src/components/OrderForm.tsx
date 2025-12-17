@@ -46,6 +46,7 @@ export function OrderForm({ isConnected, farcasterUser }: OrderFormProps) {
   const [moonSign, setMoonSign] = useState('')
   const [musicalStyle, setMusicalStyle] = useState('')
   const [allowPublication, setAllowPublication] = useState(false)
+  const [approvalAmount, setApprovalAmount] = useState('')
   
   const [error, setError] = useState<string | null>(null)
   const [step, setStep] = useState<'form' | 'uploading' | 'approve' | 'mint' | 'success'>('form')
@@ -267,13 +268,13 @@ export function OrderForm({ isConnected, farcasterUser }: OrderFormProps) {
       
       if (!hasEnoughAllowance) {
         setStep('approve')
-        // Approve a larger amount ($1000 USDC) so users can make multiple purchases
-        const approvalAmount = BigInt(1000 * 1e6) // $1000 USDC
+        // Use the user-specified approval amount or default to the purchase price
+        const userApprovalAmount = approvalAmount ? parseFloat(approvalAmount) * 1e6 : Number(priceInUSDC)
         approveUSDC({
           address: USDC_CONFIG.address,
           abi: ERC20_ABI,
           functionName: 'approve',
-          args: [CONTRACT_CONFIG.address, approvalAmount],
+          args: [CONTRACT_CONFIG.address, BigInt(userApprovalAmount)],
         })
       } else {
         setStep('mint')
@@ -526,13 +527,39 @@ export function OrderForm({ isConnected, farcasterUser }: OrderFormProps) {
         </div>
       </div>
 
-      {/* Balance */}
-      {isConnected && usdcBalance !== undefined && (
-        <div className="mt-4 text-center">
-          <span className="text-gray-500 text-sm">Balance: </span>
-          <span className={`text-sm font-medium ${hasEnoughBalance ? 'text-green-600' : 'text-red-500'}`}>
-            ${(Number(usdcBalance) / 1e6).toFixed(2)} USDC
-          </span>
+      {/* USDC Approval Section */}
+      {isConnected && (
+        <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-gray-500 text-sm">Balance: </span>
+            <span className={`text-sm font-medium ${hasEnoughBalance ? 'text-green-600' : 'text-red-500'}`}>
+              ${(Number(usdcBalance || 0) / 1e6).toFixed(2)} USDC
+            </span>
+          </div>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-gray-500 text-sm">Approved: </span>
+            <span className={`text-sm font-medium ${hasEnoughAllowance ? 'text-green-600' : 'text-orange-600'}`}>
+              ${(Number(allowance || 0) / 1e6).toFixed(2)} USDC
+            </span>
+          </div>
+          <div className="mt-3">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Approval Amount (optional)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={approvalAmount}
+              onChange={(e) => setApprovalAmount(e.target.value)}
+              placeholder={`${priceInDollars.toFixed(2)} (minimum)`}
+              disabled={isProcessing}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-800 placeholder-gray-400 disabled:opacity-50"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Leave empty to approve exact amount (${priceInDollars.toFixed(2)}). Higher amounts allow multiple purchases.
+            </p>
+          </div>
         </div>
       )}
       
