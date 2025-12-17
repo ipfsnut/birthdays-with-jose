@@ -41,6 +41,21 @@ export default function Home() {
             fid: context.user.fid,
             username: context.user.username,
           })
+          
+          // Auto-connect wallet in Farcaster environment
+          // In Farcaster, users already have a connected wallet, so we attempt auto-connect
+          if (!isConnected && connectors.length > 0) {
+            console.log('Auto-connecting in Farcaster environment for user:', context.user.username)
+            // Try to connect with injected connector (most likely to work with Farcaster's embedded wallet)
+            const injectedConnector = connectors.find(c => c.id === 'injected')
+            if (injectedConnector) {
+              try {
+                await connect({ connector: injectedConnector })
+              } catch (error) {
+                console.log('Auto-connect failed, user can connect manually:', error)
+              }
+            }
+          }
         }
         
         // Signal to Farcaster that the miniapp is ready
@@ -53,7 +68,7 @@ export default function Home() {
       }
     }
     initSDK()
-  }, [])
+  }, [isConnected, connectors, connect])
 
   // Auto-connect wallet (disabled for manual connection)
   // useEffect(() => {
@@ -102,16 +117,19 @@ export default function Home() {
             <button
               onClick={() => {
                 console.log('Connect button clicked, connectors:', connectors)
-                if (connectors[0]) {
-                  console.log('Attempting to connect with connector:', connectors[0])
-                  connect({ connector: connectors[0] })
+                // Try injected first (works best in Farcaster), then others
+                const injectedConnector = connectors.find(c => c.id === 'injected')
+                const connector = injectedConnector || connectors[0]
+                if (connector) {
+                  console.log('Attempting to connect with connector:', connector)
+                  connect({ connector })
                 } else {
                   console.error('No connectors available')
                 }
               }}
               className="bg-white/20 active:bg-white/30 rounded-full px-3 py-1.5 text-white text-xs font-medium"
             >
-              Connect
+              {farcasterUser ? 'Connect Wallet' : 'Connect'}
             </button>
           )}
         </div>

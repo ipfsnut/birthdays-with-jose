@@ -247,7 +247,7 @@ export function OrderForm({ isConnected }: OrderFormProps) {
     if (supplyData) {
       const tierSupply = selectedTier === SongType.BIRTHDAY ? supplyData.birthday : supplyData.natal
       if (tierSupply.soldOut) {
-        setError(`${selectedTier === SongType.BIRTHDAY ? 'Birthday Songs' : 'Astro Songs'} are sold out!`)
+        setError(`${selectedTier === SongType.BIRTHDAY ? 'Birthday Songs' : 'Natal Chart Songs'} are sold out!`)
         return
       }
     }
@@ -299,7 +299,7 @@ export function OrderForm({ isConnected }: OrderFormProps) {
         <div className="text-6xl mb-4">🎉</div>
         <h2 className="text-xl font-bold text-gray-800 mb-2">Order Placed!</h2>
         <p className="text-gray-600 mb-4">
-          Jose is creating your {selectedTier === SongType.BIRTHDAY ? 'birthday song' : 'astrology-inspired song'}!
+          Jose is creating your {selectedTier === SongType.BIRTHDAY ? 'birthday song' : 'natal chart song'}!
         </p>
         <p className="text-sm text-gray-500 mb-4">
           Check "My Songs" tab to download once Jose fulfills your order.
@@ -377,7 +377,7 @@ export function OrderForm({ isConnected }: OrderFormProps) {
           selected={selectedTier === SongType.NATAL}
           onClick={() => !isProcessing && setSelectedTier(SongType.NATAL)}
           emoji="🌟"
-          title="Astro Song"
+          title="Natal Chart Song"
           price={natalPrice ? Number(natalPrice) / 1e6 : 250}
           color="purple"
           disabled={isProcessing}
