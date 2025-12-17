@@ -123,13 +123,10 @@ app.post('/api/orders/upload', async (c) => {
       return c.json({ error: 'Missing orderData in request body' }, 400)
     }
     
-    if (!metadata?.tokenId) {
-      return c.json({ error: 'Missing tokenId in metadata' }, 400)
-    }
+    // Generate tokenId if not provided (for dev/testing)
+    const tokenId = metadata?.tokenId || Date.now()
     
     const turbo = await getTurboClient(c.env)
-    
-    const tokenId = metadata.tokenId
     
     // Upload order data with unique token-based security
     const orderDataStr = JSON.stringify(orderData)
