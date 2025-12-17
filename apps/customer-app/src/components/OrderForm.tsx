@@ -71,14 +71,14 @@ export function OrderForm({ isConnected, farcasterUser }: OrderFormProps) {
         address: USDC_CONFIG.address,
         abi: ERC20_ABI,
         functionName: 'allowance',
-        args: [address, CONTRACT_CONFIG.address] as const,
+        args: [address, CONTRACT_CONFIG.address],
         chainId: CHAIN_ID,
       }] : []),
       ...(address ? [{
         address: USDC_CONFIG.address,
         abi: ERC20_ABI,
         functionName: 'balanceOf',
-        args: [address] as const,
+        args: [address],
         chainId: CHAIN_ID,
       }] : []),
       {
@@ -88,7 +88,7 @@ export function OrderForm({ isConnected, farcasterUser }: OrderFormProps) {
         chainId: CHAIN_ID,
       },
     ],
-  })
+  } as any)
 
   const birthdayPrice = contractData?.[0]?.result as bigint
   const natalPrice = contractData?.[1]?.result as bigint
