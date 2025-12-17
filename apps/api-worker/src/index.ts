@@ -42,6 +42,7 @@ const app = new Hono<{ Bindings: Env }>()
 // CORS middleware
 app.use('*', cors({
   origin: [
+    'https://birthdays-with-jose.pages.dev',
     'https://birthday-songs.pages.dev', 
     'https://birthdays-with-jose-dashboard.pages.dev',
     'http://localhost:3000',

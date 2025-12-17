@@ -146,8 +146,10 @@ app.post('/api/orders/upload', async (c) => {
     // Check supply limits
     if (!checkSupplyAvailable(metadata.type)) {
       const supply = getSupplyCount()
+      const tierName = metadata.type === 'birthday' ? 'Birthday Songs' : 'Natal Chart Songs'
+      const tierSupply = supply[metadata.type as keyof typeof supply] as { minted: number; limit: number; soldOut: boolean }
       return c.json({ 
-        error: `${metadata.type === 'birthday' ? 'Birthday Songs' : 'Natal Chart Songs'} are sold out! (${supply[metadata.type].minted}/${supply[metadata.type].limit})` 
+        error: `${tierName} are sold out! (${tierSupply.minted}/${tierSupply.limit})` 
       }, 400)
     }
     
@@ -166,14 +168,15 @@ app.post('/api/orders/upload', async (c) => {
     })
     
     const supply = getSupplyCount()
-    console.log(`📝 Mock order uploaded: ${arweaveId} | ${metadata.type} (${supply[metadata.type].minted}/${supply[metadata.type].limit})`)
+    const tierSupply = supply[metadata.type as keyof typeof supply] as { minted: number; limit: number; soldOut: boolean }
+    console.log(`📝 Mock order uploaded: ${arweaveId} | ${metadata.type} (${tierSupply.minted}/${tierSupply.limit})`)
     
     return c.json({
       success: true,
       arweaveId,
       uri: `ardrive://${arweaveId}`,
       cost: '100', // Mock cost
-      supply: supply[metadata.type]
+      supply: tierSupply
     })
     
   } catch (error) {
