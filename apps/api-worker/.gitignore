@@ -1,0 +1,16 @@
+# Debug and test files
+debug-secrets.js
+test-key.js
+
+# Temporary files
+/temp/
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.wrangler/
+
+# Environment files
+.env*

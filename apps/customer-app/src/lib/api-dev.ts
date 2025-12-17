@@ -71,7 +71,7 @@ async function mockDecrypt(encrypted: string): Promise<any> {
 }
 
 // API base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://birthday-songs-api.dylan-259.workers.dev'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://birthday-songs-api-prod.dylan-259.workers.dev'
 
 /**
  * Development API client
