@@ -1,18 +1,12 @@
 {
-  "accountAssociation": {
-    "header": "REPLACE_WITH_SIGNED_HEADER",
-    "payload": "REPLACE_WITH_PAYLOAD",
-    "signature": "REPLACE_WITH_SIGNATURE"
-  },
   "frame": {
-    "version": "1",
-    "name": "Birthday Songs",
-    "iconUrl": "https://your-domain.com/icon.png",
-    "homeUrl": "https://your-domain.com",
-    "imageUrl": "https://your-domain.com/og-image.png",
-    "buttonTitle": "🎸 Order a Song",
-    "splashImageUrl": "https://your-domain.com/splash.png",
-    "splashBackgroundColor": "#60a5fa",
-    "webhookUrl": "https://your-domain.com/api/webhook"
+    "version": "1", 
+    "name": "Jose's Birthday Songs",
+    "iconUrl": "https://birthdays-with-jose.pages.dev/JoseWarplet.png",
+    "homeUrl": "https://birthdays-with-jose.pages.dev",
+    "imageUrl": "https://birthdays-with-jose.pages.dev/JoseWarplet.png", 
+    "buttonTitle": "🎂 Order Your Song",
+    "splashImageUrl": "https://birthdays-with-jose.pages.dev/JoseWarplet.png",
+    "splashBackgroundColor": "#60a5fa"
   }
 }

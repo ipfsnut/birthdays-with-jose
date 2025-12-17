@@ -46,8 +46,11 @@ contract BirthdaySongs is ERC721, Ownable {
     uint256 public natalsMinted;
     
     // Platform fee in USDC (deducted from sales)
-    uint256 public constant PLATFORM_FEE = 0.5 * 1e6;  // $0.50 USDC per order
+    uint256 public constant PLATFORM_FEE = 500_000;  // $0.50 USDC per order (clearer without floating point)
     address public platformWallet;
+    
+    // Track withdrawn fees to prevent double-charging
+    uint256 public lastWithdrawnTokenId;
     
     struct Order {
         SongType songType;
@@ -76,6 +79,8 @@ contract BirthdaySongs is ERC721, Ownable {
     
     event PlatformFeeUpdated(uint256 newFee);
     event PricesUpdated(uint256 birthdayPrice, uint256 natalPrice);
+    event PlatformWalletUpdated(address indexed oldWallet, address indexed newWallet);
+    event Withdrawal(uint256 creatorAmount, uint256 platformFee);
     
     constructor(
         address _usdc,
@@ -152,11 +157,23 @@ contract BirthdaySongs is ERC721, Ownable {
     
     /**
      * @dev Update prices (in USDC with 6 decimals)
+     * @notice Price changes affect pending transactions. Consider implementing a timelock
+     * or price commitment scheme for production to prevent race conditions.
      */
     function setPrices(uint256 _birthdayPrice, uint256 _natalPrice) external onlyOwner {
         birthdayPrice = _birthdayPrice;
         natalPrice = _natalPrice;
         emit PricesUpdated(_birthdayPrice, _natalPrice);
+    }
+    
+    /**
+     * @dev Update platform wallet address
+     */
+    function setPlatformWallet(address _platformWallet) external onlyOwner {
+        require(_platformWallet != address(0), "Invalid platform wallet");
+        address oldWallet = platformWallet;
+        platformWallet = _platformWallet;
+        emit PlatformWalletUpdated(oldWallet, _platformWallet);
     }
     
     /**
@@ -171,8 +188,9 @@ contract BirthdaySongs is ERC721, Ownable {
         uint256 balance = USDC.balanceOf(address(this));
         require(balance > 0, "No funds to withdraw");
         
-        // Calculate total platform fees ($0.50 per order minted)
-        uint256 totalPlatformFee = _nextTokenId * PLATFORM_FEE;
+        // Calculate platform fees only for new orders since last withdrawal
+        uint256 newOrders = _nextTokenId - lastWithdrawnTokenId;
+        uint256 totalPlatformFee = newOrders * PLATFORM_FEE;
         
         // Ensure we don't deduct more than the balance
         if (totalPlatformFee > balance) {
@@ -180,6 +198,9 @@ contract BirthdaySongs is ERC721, Ownable {
         }
         
         uint256 creatorAmount = balance - totalPlatformFee;
+        
+        // Update the withdrawal tracker
+        lastWithdrawnTokenId = _nextTokenId;
         
         // Transfer platform fees to platform wallet
         if (totalPlatformFee > 0) {
@@ -190,6 +211,8 @@ contract BirthdaySongs is ERC721, Ownable {
         if (creatorAmount > 0) {
             USDC.safeTransfer(owner(), creatorAmount);
         }
+        
+        emit Withdrawal(creatorAmount, totalPlatformFee);
     }
     
     function getOrder(uint256 tokenId) external view returns (Order memory) {

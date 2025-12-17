@@ -28,21 +28,27 @@ export default function Home() {
     functionName: 'birthdayPrice',
   })
 
-  // Initialize Farcaster SDK (temporarily disabled)
+  // Initialize Farcaster Miniapp SDK
   useEffect(() => {
     const initSDK = async () => {
       try {
-        // const context = await sdk.context
-        // if (context?.user) {
-        //   setFarcasterUser({
-        //     fid: context.user.fid,
-        //     username: context.user.username,
-        //   })
-        // }
-        // await sdk.actions.ready()
+        const { sdk } = await import('@farcaster/miniapp-sdk')
+        
+        // Get user context from Farcaster
+        const context = await sdk.context
+        if (context?.user) {
+          setFarcasterUser({
+            fid: context.user.fid,
+            username: context.user.username,
+          })
+        }
+        
+        // Signal to Farcaster that the miniapp is ready
+        await sdk.actions.ready()
         setIsSDKLoaded(true)
       } catch (error) {
-        console.error('SDK init error:', error)
+        console.error('Farcaster SDK init error:', error)
+        // Fallback for non-Farcaster environments (like testing in browser)
         setIsSDKLoaded(true)
       }
     }

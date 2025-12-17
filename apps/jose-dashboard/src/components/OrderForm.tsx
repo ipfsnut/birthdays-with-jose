@@ -45,6 +45,7 @@ export function OrderForm({ isConnected }: OrderFormProps) {
   const [risingSign, setRisingSign] = useState('')
   const [moonSign, setMoonSign] = useState('')
   const [musicalStyle, setMusicalStyle] = useState('')
+  const [allowPublication, setAllowPublication] = useState(false)
   
   const [error, setError] = useState<string | null>(null)
   const [step, setStep] = useState<'form' | 'uploading' | 'approve' | 'mint' | 'success'>('form')
@@ -111,7 +112,7 @@ export function OrderForm({ isConnected }: OrderFormProps) {
       recipientName,
       orderedBy: address || '',
       orderedAt: new Date().toISOString(),
-      allowPublication: false, // Keep orders private by default
+      allowPublication: allowPublication,
     }
 
     if (birthDate) orderData.birthDate = birthDate
@@ -392,6 +393,25 @@ export function OrderForm({ isConnected }: OrderFormProps) {
           placeholder="Anything else to include..."
           disabled={isProcessing}
         />
+
+        {/* Publication Permission */}
+        <label className="flex items-start gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50">
+          <input
+            type="checkbox"
+            checked={allowPublication}
+            onChange={(e) => setAllowPublication(e.target.checked)}
+            disabled={isProcessing}
+            className="w-5 h-5 rounded mt-0.5 text-orange-500 focus:ring-orange-300"
+          />
+          <div className="flex-1">
+            <div className="font-medium text-gray-800 mb-1">
+              Allow public release after special day
+            </div>
+            <div className="text-sm text-gray-600">
+              If checked, Jose may release this song publicly after your special day has passed, with credit to you as inspiration.
+            </div>
+          </div>
+        </label>
       </div>
 
       {/* Balance */}

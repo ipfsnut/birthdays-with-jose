@@ -1,0 +1,20 @@
+import { NextResponse } from 'next/server'
+
+export const dynamic = 'force-static'
+
+export async function GET() {
+  const manifest = {
+    frame: {
+      version: "1",
+      name: "Jose's Birthday Songs",
+      iconUrl: "https://birthdays-with-jose.pages.dev/JoseWarplet.png",
+      homeUrl: "https://birthdays-with-jose.pages.dev",
+      imageUrl: "https://birthdays-with-jose.pages.dev/JoseWarplet.png",
+      buttonTitle: "🎂 Order Your Song",
+      splashImageUrl: "https://birthdays-with-jose.pages.dev/JoseWarplet.png",
+      splashBackgroundColor: "#60a5fa"
+    }
+  }
+
+  return NextResponse.json(manifest)
+}
