@@ -14,7 +14,7 @@ export const config = createConfig({
       projectId: '4e0bbee2a17c93edb2f3db9b7c0e8e42', // Public WalletConnect project ID
       metadata: {
         name: 'Jose\'s Birthday Songs',
-        description: 'Custom astrology-inspired melodies',
+        description: 'Custom natal chart-inspired melodies',
         url: 'https://birthday-songs.pages.dev',
         icons: ['https://birthday-songs.pages.dev/JoseWarplet.png']
       }
