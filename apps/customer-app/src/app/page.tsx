@@ -31,71 +31,40 @@ export default function Home() {
   // Initialize Farcaster Miniapp SDK
   useEffect(() => {
     const initSDK = async () => {
-      console.log('Initializing Farcaster SDK...')
       try {
         const { sdk } = await import('@farcaster/miniapp-sdk')
-        console.log('SDK imported successfully')
         
         // Get user context from Farcaster
         const context = await sdk.context
-        console.log('SDK context:', context)
-        
         if (context?.user) {
-          console.log('Farcaster user found:', context.user)
           setFarcasterUser({
             fid: context.user.fid,
             username: context.user.username,
           })
-        } else {
-          console.log('No Farcaster user in context')
         }
         
-        // Signal to Farcaster that the miniapp is ready
+        // Signal ready to Farcaster
         await sdk.actions.ready()
-        console.log('SDK ready signal sent')
         setIsSDKLoaded(true)
       } catch (error) {
-        console.error('Farcaster SDK init error:', error)
-        // Fallback for non-Farcaster environments (like testing in browser)
-        console.log('Running in non-Farcaster environment')
+        console.error('Farcaster SDK error:', error)
         setIsSDKLoaded(true)
       }
     }
     initSDK()
   }, [])
 
-  // Auto-connect wallet when in Farcaster environment and connectors are ready
+  // Auto-connect wagmi to Farcaster's embedded wallet
   useEffect(() => {
-    console.log('Auto-connect check:', {
-      farcasterUser: !!farcasterUser,
-      isConnected,
-      connectorsLength: connectors.length,
-      isSDKLoaded,
-      shouldAutoConnect: farcasterUser && !isConnected && connectors.length > 0 && isSDKLoaded
-    })
-    
     if (farcasterUser && !isConnected && connectors.length > 0 && isSDKLoaded) {
-      console.log('Auto-connecting Farcaster wallet for user:', farcasterUser.username)
-      console.log('Available connectors:', connectors.map(c => ({ id: c.id, name: c.name })))
-      
-      // Try injected connector first (best for Farcaster), then any available
+      // Farcaster has Privy wallet embedded - try connecting wagmi to it
       const injectedConnector = connectors.find(c => c.id === 'injected')
-      const connector = injectedConnector || connectors[0]
-      
-      if (connector) {
-        console.log('Attempting auto-connect with connector:', connector.id, connector.name)
-        
-        // Add a small delay to let the Farcaster environment settle
-        setTimeout(async () => {
-          try {
-            const result = await connect({ connector })
-            console.log('Auto-connect result:', result)
-          } catch (error) {
-            console.log('Auto-connect failed, user can connect manually:', error)
-          }
-        }, 500)
-      } else {
-        console.log('No connector found for auto-connect')
+      if (injectedConnector) {
+        try {
+          connect({ connector: injectedConnector })
+        } catch {
+          // Silent fail - Farcaster context doesn't require wagmi connection for UX
+        }
       }
     }
   }, [farcasterUser, isConnected, connectors, isSDKLoaded, connect])
@@ -136,31 +105,13 @@ export default function Home() {
             </div>
           </div>
           
-          {isConnected ? (
+          {farcasterUser && (
             <div className="flex items-center gap-1.5 bg-white/20 rounded-full px-3 py-1.5">
               <span className="w-2 h-2 bg-green-400 rounded-full"></span>
               <span className="text-white text-xs font-medium">
-                {farcasterUser?.username ? `@${farcasterUser.username}` : `${address?.slice(0, 4)}...${address?.slice(-3)}`}
+                @{farcasterUser.username}
               </span>
             </div>
-          ) : (
-            <button
-              onClick={() => {
-                console.log('Connect button clicked, connectors:', connectors)
-                // Try injected first (works best in Farcaster), then others
-                const injectedConnector = connectors.find(c => c.id === 'injected')
-                const connector = injectedConnector || connectors[0]
-                if (connector) {
-                  console.log('Attempting to connect with connector:', connector)
-                  connect({ connector })
-                } else {
-                  console.error('No connectors available')
-                }
-              }}
-              className="bg-white/20 active:bg-white/30 rounded-full px-3 py-1.5 text-white text-xs font-medium"
-            >
-              {farcasterUser ? 'Connect Wallet' : 'Connect'}
-            </button>
           )}
         </div>
       </header>
@@ -189,7 +140,7 @@ export default function Home() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 pb-8 safe-bottom">
-        {activeTab === 'order' && <OrderForm isConnected={isConnected} />}
+        {activeTab === 'order' && <OrderForm isConnected={!!farcasterUser} />}
         {activeTab === 'my-songs' && <MyOrders address={address} />}
         {activeTab === 'creator' && isCreator && <CreatorDashboard />}
       </div>

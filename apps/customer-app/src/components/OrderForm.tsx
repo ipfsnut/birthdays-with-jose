@@ -222,8 +222,9 @@ export function OrderForm({ isConnected }: OrderFormProps) {
     e.preventDefault()
     setError(null)
 
-    if (!isConnected || !address) {
-      setError('Connect your wallet first')
+    // In Farcaster context, skip wallet connection check - Privy handles it
+    if (!isConnected) {
+      setError('Wallet not ready')
       return
     }
     if (!recipientName.trim()) {
@@ -553,9 +554,6 @@ export function OrderForm({ isConnected }: OrderFormProps) {
          `Pay $${priceInDollars.toFixed(2)} USDC`}
       </button>
 
-      {!isConnected && (
-        <p className="text-center text-gray-400 text-sm mt-2">Connect wallet to order</p>
-      )}
       </div>
     </form>
   )
