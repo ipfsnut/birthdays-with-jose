@@ -23,7 +23,7 @@ export interface EncryptedPayload {
  */
 export async function uploadToArweave(payload: EncryptedPayload): Promise<string> {
   // Upload through our API worker which has ArDrive credentials
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://birthday-songs-api.dylan-259.workers.dev'
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://birthday-songs-api-prod.dylan-259.workers.dev'
   
   try {
     const response = await fetch(`${apiUrl}/api/orders/upload`, {
