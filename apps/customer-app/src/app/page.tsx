@@ -60,12 +60,13 @@ export default function Home() {
       console.log('Attempting to connect to Privy wallet...')
       console.log('Available connectors:', connectors.map(c => ({ id: c.id, name: c.name })))
       
-      const farcasterConnector = connectors.find(c => c.id === 'farcasterMiniApp')
+      // Find the Farcaster connector by exact ID
+      const farcasterConnector = connectors.find(c => c.id === 'farcaster')
       if (farcasterConnector) {
-        console.log('Connecting to Farcaster Frame connector...')
+        console.log('Connecting to connector:', farcasterConnector.id, farcasterConnector.name)
         connect({ connector: farcasterConnector })
       } else {
-        console.error('No Farcaster Frame connector found!')
+        console.error('No suitable connector found! Available:', connectors.map(c => c.id))
       }
     }
   }, [farcasterUser, isConnected, isSDKLoaded, connectors, connect])

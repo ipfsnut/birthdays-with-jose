@@ -141,7 +141,7 @@ app.post('/api/fund', async (c) => {
 // Upload encrypted order data (mock)
 app.post('/api/orders/upload', async (c) => {
   try {
-    const { encryptedData, driveId, metadata } = await c.req.json()
+    const { encryptedData, driveId, metadata, orderData } = await c.req.json()
     
     // Check supply limits
     if (!checkSupplyAvailable(metadata.type)) {
@@ -156,13 +156,17 @@ app.post('/api/orders/upload', async (c) => {
     // Generate mock ArDrive ID
     const arweaveId = `mock-order-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     
+    // For dev mode, generate a mock tokenId if not provided
+    const tokenId = metadata.tokenId || Date.now()
+    
     // Store in mock storage
     mockStorage.orders.set(arweaveId, {
       id: arweaveId,
       encryptedData,
       driveId,
-      metadata,
-      tokenId: metadata.tokenId,
+      metadata: { ...metadata, tokenId },
+      orderData,
+      tokenId,
       status: 'pending',
       createdAt: new Date().toISOString()
     })
@@ -175,6 +179,7 @@ app.post('/api/orders/upload', async (c) => {
       success: true,
       arweaveId,
       uri: `ardrive://${arweaveId}`,
+      tokenId,
       cost: '100', // Mock cost
       supply: tierSupply
     })
