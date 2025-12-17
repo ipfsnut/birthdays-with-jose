@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useAccount, useConnect, useReadContract } from 'wagmi'
+import { useAccount, useConnect } from 'wagmi'
 import Image from 'next/image'
 import { BIRTHDAY_SONGS_ABI, CONTRACT_CONFIG, CREATOR_ADDRESS } from '@/lib/contract'
 import { OrderForm } from '@/components/OrderForm'
@@ -21,12 +21,7 @@ export default function Home() {
   // Check if user is creator
   const isCreator = address?.toLowerCase() === CREATOR_ADDRESS.toLowerCase()
 
-  // Verify contract connection
-  const { data: birthdayPrice, isError: priceError } = useReadContract({
-    address: CONTRACT_CONFIG.address,
-    abi: BIRTHDAY_SONGS_ABI,
-    functionName: 'birthdayPrice',
-  })
+  // Contract verification handled in OrderForm multicall
 
   // Initialize Farcaster Miniapp SDK
   useEffect(() => {
@@ -118,12 +113,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Contract status */}
-      {priceError && (
-        <div className="mx-4 mb-2 px-3 py-2 bg-red-500/20 rounded-xl">
-          <p className="text-white text-xs text-center">⚠️ Contract not deployed yet</p>
-        </div>
-      )}
+      {/* Contract status handled in OrderForm */}
 
       {/* Tabs */}
       <nav className="flex-shrink-0 flex gap-2 px-4 pb-3">
