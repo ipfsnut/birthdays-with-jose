@@ -42,20 +42,7 @@ export default function Home() {
             username: context.user.username,
           })
           
-          // Auto-connect wallet in Farcaster environment
-          // In Farcaster, users already have a connected wallet, so we attempt auto-connect
-          if (!isConnected && connectors.length > 0) {
-            console.log('Auto-connecting in Farcaster environment for user:', context.user.username)
-            // Try to connect with injected connector (most likely to work with Farcaster's embedded wallet)
-            const injectedConnector = connectors.find(c => c.id === 'injected')
-            if (injectedConnector) {
-              try {
-                await connect({ connector: injectedConnector })
-              } catch (error) {
-                console.log('Auto-connect failed, user can connect manually:', error)
-              }
-            }
-          }
+          // Don't auto-connect here - do it in separate effect after connectors load
         }
         
         // Signal to Farcaster that the miniapp is ready
@@ -68,9 +55,31 @@ export default function Home() {
       }
     }
     initSDK()
-  }, [isConnected, connectors, connect])
+  }, [])
 
-  // Auto-connect wallet (disabled for manual connection)
+  // Auto-connect wallet when in Farcaster environment and connectors are ready
+  useEffect(() => {
+    if (farcasterUser && !isConnected && connectors.length > 0 && isSDKLoaded) {
+      console.log('Auto-connecting Farcaster wallet for user:', farcasterUser.username)
+      console.log('Available connectors:', connectors)
+      
+      // Try injected connector first (best for Farcaster), then any available
+      const injectedConnector = connectors.find(c => c.id === 'injected')
+      const connector = injectedConnector || connectors[0]
+      
+      if (connector) {
+        console.log('Attempting auto-connect with connector:', connector.id)
+        try {
+          connect({ connector })
+          console.log('Auto-connect initiated')
+        } catch (error) {
+          console.log('Auto-connect failed, user can connect manually:', error)
+        }
+      }
+    }
+  }, [farcasterUser, isConnected, connectors, isSDKLoaded, connect])
+
+  // Manual connect (disabled - now handled by auto-connect above)
   // useEffect(() => {
   //   if (isSDKLoaded && !isConnected && connectors.length > 0) {
   //     connect({ connector: connectors[0] })
