@@ -267,11 +267,13 @@ export function OrderForm({ isConnected, farcasterUser }: OrderFormProps) {
       
       if (!hasEnoughAllowance) {
         setStep('approve')
+        // Approve a larger amount ($1000 USDC) so users can make multiple purchases
+        const approvalAmount = BigInt(1000 * 1e6) // $1000 USDC
         approveUSDC({
           address: USDC_CONFIG.address,
           abi: ERC20_ABI,
           functionName: 'approve',
-          args: [CONTRACT_CONFIG.address, priceInUSDC],
+          args: [CONTRACT_CONFIG.address, approvalAmount],
         })
       } else {
         setStep('mint')
@@ -542,6 +544,8 @@ export function OrderForm({ isConnected, farcasterUser }: OrderFormProps) {
         <div>farcasterUser: {farcasterUser ? `@${farcasterUser.username}` : 'none'}</div>
         <div>hasEnoughBalance: {String(hasEnoughBalance)}</div>
         <div>usdcBalance: {usdcBalance ? (Number(usdcBalance) / 1e6).toFixed(2) : 'loading'}</div>
+        <div>usdcAllowance: {allowance ? (Number(allowance) / 1e6).toFixed(2) : 'loading'}</div>
+        <div>hasEnoughAllowance: {String(hasEnoughAllowance)}</div>
         <div>contractData: {contractData ? 'loaded' : 'loading'}</div>
         <div>contractError: {contractError ? String(contractError) : 'ok'}</div>
         <div>contractLoading: {String(contractLoading)}</div>
