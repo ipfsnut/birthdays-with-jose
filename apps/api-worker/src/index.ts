@@ -225,28 +225,31 @@ app.post('/api/orders/fulfill', async (c) => {
   }
 })
 
-// Get order data from ArDrive
+// Get order data from Railway service
 app.get('/api/orders/:arweaveId', async (c) => {
   try {
     const arweaveId = c.req.param('arweaveId')
+    console.log('🔍 Fetching order from Railway:', arweaveId)
     
-    // Fetch encrypted data from ArDrive
-    const response = await fetch(`https://arweave.net/${arweaveId}`)
-    if (!response.ok) {
-      throw new Error(`Failed to fetch from ArDrive: ${response.statusText}`)
+    const railwayResponse = await fetch(`https://birthdays-with-jose-production.up.railway.app/api/orders/${arweaveId}`)
+    
+    if (!railwayResponse.ok) {
+      const errorText = await railwayResponse.text().catch(() => 'No response text')
+      console.error('❌ Railway service failed:', railwayResponse.status, errorText)
+      throw new Error(`Railway service error: ${railwayResponse.status} - ${errorText}`)
     }
     
-    const encryptedData = await response.text()
-    
-    return c.json({
-      success: true,
-      encryptedData,
-      arweaveId
-    })
+    const railwayData = await railwayResponse.json()
+    console.log('📦 Railway response success:', railwayData)
+    return c.json(railwayData)
     
   } catch (error) {
-    console.error('Order fetch failed:', error)
-    return c.json({ error: 'Failed to fetch order' }, 500)
+    console.error('❌ Order fetch failed:', error)
+    return c.json({ 
+      error: 'Failed to fetch order from Railway service', 
+      details: error instanceof Error ? error.message : 'Unknown error',
+      arweaveId: c.req.param('arweaveId')
+    }, 500)
   }
 })
 
