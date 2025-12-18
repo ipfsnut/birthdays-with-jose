@@ -63,18 +63,33 @@ async function mockEncrypt(data: any): Promise<string> {
   return btoa(JSON.stringify(data))
 }
 
-async function mockDecrypt(encrypted: string): Promise<any> {
-  try {
-    // First try to parse as JSON directly (if it's already a JSON string)
-    return JSON.parse(encrypted)
-  } catch {
+// Production decryption function
+async function decrypt(encryptedData: string): Promise<any> {
+  console.log('🔓 Decrypting data type:', typeof encryptedData)
+  console.log('🔓 Encrypted data preview:', encryptedData.substring(0, 100) + '...')
+  
+  // The Railway service should return properly decrypted data
+  // If it's already a JSON string, parse it directly
+  if (typeof encryptedData === 'string' && encryptedData.startsWith('{')) {
     try {
-      // If that fails, try base64 decode then parse
-      return JSON.parse(atob(encrypted))
-    } catch {
-      // If both fail, return as is
-      return encrypted
+      const parsed = JSON.parse(encryptedData)
+      console.log('✅ Successfully parsed JSON data:', parsed)
+      return parsed
+    } catch (error) {
+      console.error('❌ Failed to parse JSON:', error)
     }
+  }
+  
+  // If it's base64 encoded, decode it first
+  try {
+    const decoded = atob(encryptedData)
+    console.log('🔓 Base64 decoded:', decoded.substring(0, 100) + '...')
+    const parsed = JSON.parse(decoded)
+    console.log('✅ Successfully decoded and parsed:', parsed)
+    return parsed
+  } catch (error) {
+    console.error('❌ Failed to decode/parse base64:', error)
+    throw new Error('Failed to decrypt order data')
   }
 }
 
@@ -178,7 +193,7 @@ class DevBirthdaySongsAPI {
     const response = await this.request<{ encryptedData: string }>(`/api/orders/${arweaveId}`)
     console.log('📦 API: Received response:', response)
     
-    const decrypted = await mockDecrypt(response.encryptedData)
+    const decrypted = await decrypt(response.encryptedData)
     console.log('🔓 API: Decrypted data:', decrypted)
     
     return decrypted
@@ -189,7 +204,7 @@ class DevBirthdaySongsAPI {
    */
   async fetchSong(arweaveId: string, songKey: string): Promise<string> {
     const response = await this.request<{ encryptedData: string }>(`/api/songs/${arweaveId}`)
-    return mockDecrypt(response.encryptedData)
+    return decrypt(response.encryptedData)
   }
 
   /**
