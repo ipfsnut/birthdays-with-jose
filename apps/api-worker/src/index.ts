@@ -189,9 +189,16 @@ app.get('/api/orders', async (c) => {
       SELECT * FROM orders ORDER BY created_at DESC
     `).all()
     
+    // Map database fields to dashboard expected format
+    const mappedOrders = results.map(order => ({
+      ...order,
+      orderDataUri: `ardrive://${order.arweave_id}`,
+      tokenId: order.token_id
+    }))
+    
     return c.json({
       success: true,
-      orders: results
+      orders: mappedOrders
     })
     
   } catch (error) {
