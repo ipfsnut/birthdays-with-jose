@@ -231,6 +231,11 @@ export function CreatorDashboard() {
           <p className="text-gray-400 text-sm text-center py-4">No orders yet</p>
         )}
 
+        {/* Debug Panel */}
+        {selectedOrder !== null && (
+          <DebugPanel tokenId={selectedOrder} />
+        )}
+
         {/* Selected Order Details */}
         {selectedOrder !== null && (
           <OrderDetails
@@ -349,13 +354,15 @@ function OrderDetails({ tokenId, decryptedData, setDecryptedData, isDecrypting, 
         // Fetch and decrypt from ArDrive private drive
         // Extract file ID from ArDrive URI
         const fileId = typedOrder.orderDataUri.replace('ardrive://', '').replace('mock://', '')
+        console.log('🔍 Decrypting order:', { tokenId, orderDataUri: typedOrder.orderDataUri, fileId })
         
         // Fetch and decrypt order data via API
         const data = await api.fetchOrder(fileId) as DecryptedOrderData
+        console.log('📋 Decrypted order data:', data)
 
         setDecryptedData(data)
       } catch (err) {
-        console.error('Decrypt error:', err)
+        console.error('❌ Decrypt error:', err)
       } finally {
         setIsDecrypting(false)
       }
@@ -422,6 +429,51 @@ function OrderDetails({ tokenId, decryptedData, setDecryptedData, isDecrypting, 
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function DebugPanel({ tokenId }: { tokenId: number }) {
+  const [debugInfo, setDebugInfo] = useState<any>(null)
+
+  const { data: order } = useReadContract({
+    address: CONTRACT_CONFIG.address,
+    abi: BIRTHDAY_SONGS_ABI,
+    functionName: 'getOrder',
+    args: [BigInt(tokenId)],
+  })
+
+  useEffect(() => {
+    const checkAPICall = async () => {
+      const typedOrder = order as Order
+      const fileId = typedOrder?.orderDataUri?.replace('ardrive://', '').replace('mock://', '') || 'no-uri'
+      
+      setDebugInfo({
+        tokenId,
+        orderDataUri: typedOrder?.orderDataUri || 'no-uri',
+        expectedFileId: fileId,
+        apiEndpoint: `/api/orders/${fileId}`,
+        fetchMethod: 'api.fetchOrder()'
+      })
+    }
+
+    if (order) {
+      checkAPICall()
+    }
+  }, [order, tokenId])
+
+  if (!debugInfo) return null
+
+  return (
+    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-3 text-xs">
+      <div className="font-bold text-yellow-800 mb-2">🐛 Debug Info</div>
+      <div className="space-y-1 text-yellow-700">
+        <div><strong>Token:</strong> #{debugInfo.tokenId}</div>
+        <div><strong>Order URI:</strong> {debugInfo.orderDataUri}</div>
+        <div><strong>Looking for file:</strong> {debugInfo.expectedFileId}</div>
+        <div><strong>API call:</strong> {debugInfo.apiEndpoint}</div>
+        <div><strong>Method:</strong> {debugInfo.fetchMethod}</div>
+      </div>
     </div>
   )
 }

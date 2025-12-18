@@ -86,6 +86,7 @@ class DevBirthdaySongsAPI {
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`
+    console.log('🌐 API Request:', options.method || 'GET', url)
     
     const response = await fetch(url, {
       headers: {
@@ -95,12 +96,17 @@ class DevBirthdaySongsAPI {
       ...options,
     })
 
+    console.log('📡 API Response:', response.status, response.statusText)
+
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+      console.error('❌ API Error:', error)
       throw new Error(error.error || `HTTP ${response.status}`)
     }
 
-    return response.json()
+    const result = await response.json()
+    console.log('✅ API Success:', result)
+    return result
   }
 
   /**
@@ -160,8 +166,15 @@ class DevBirthdaySongsAPI {
    * Fetch order
    */
   async fetchOrder(arweaveId: string): Promise<OrderData> {
+    console.log('🔍 API: Fetching order from:', `${this.baseUrl}/api/orders/${arweaveId}`)
+    
     const response = await this.request<{ encryptedData: string }>(`/api/orders/${arweaveId}`)
-    return mockDecrypt(response.encryptedData)
+    console.log('📦 API: Received response:', response)
+    
+    const decrypted = await mockDecrypt(response.encryptedData)
+    console.log('🔓 API: Decrypted data:', decrypted)
+    
+    return decrypted
   }
 
   /**
