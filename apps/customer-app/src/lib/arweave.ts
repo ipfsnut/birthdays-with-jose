@@ -22,11 +22,11 @@ export interface EncryptedPayload {
  * Returns the Arweave transaction ID (can be accessed at https://arweave.net/{id})
  */
 export async function uploadToArweave(payload: EncryptedPayload): Promise<string> {
-  // Upload through our API worker which has ArDrive credentials
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://birthday-songs-api-prod.dylan-259.workers.dev'
+  // Upload through Railway ArDrive service
+  const ardriveUrl = process.env.NEXT_PUBLIC_ARDRIVE_URL || 'https://birthday-songs-ardrive.up.railway.app'
   
   try {
-    const response = await fetch(`${apiUrl}/api/orders/upload`, {
+    const response = await fetch(`${ardriveUrl}/api/orders/upload`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

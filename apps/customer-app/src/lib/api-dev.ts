@@ -70,8 +70,9 @@ async function mockDecrypt(encrypted: string): Promise<any> {
   }
 }
 
-// API base URL
+// API base URLs
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://birthday-songs-api-prod.dylan-259.workers.dev'
+const ARDRIVE_URL = process.env.NEXT_PUBLIC_ARDRIVE_URL || 'https://birthday-songs-ardrive.up.railway.app'
 
 /**
  * Development API client
@@ -127,11 +128,14 @@ class DevBirthdaySongsAPI {
   }
 
   /**
-   * Upload order
+   * Upload order (now goes to Railway ArDrive service)
    */
   async uploadOrder(orderData: OrderData): Promise<UploadResponse> {
-    return this.request<UploadResponse>('/api/orders/upload', {
+    const response = await fetch(`${ARDRIVE_URL}/api/orders/upload`, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
         orderData: orderData,
         metadata: {
@@ -140,19 +144,34 @@ class DevBirthdaySongsAPI {
         },
       }),
     })
+    
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.statusText}`)
+    }
+    
+    return response.json()
   }
 
   /**
-   * Upload song
+   * Upload song (now goes to Railway ArDrive service)
    */
   async uploadSong(tokenId: number, songBase64: string): Promise<UploadResponse> {
-    return this.request<UploadResponse>('/api/songs/upload', {
+    const response = await fetch(`${ARDRIVE_URL}/api/songs/upload`, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
         songData: songBase64,
         tokenId: tokenId,
       }),
     })
+    
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.statusText}`)
+    }
+    
+    return response.json()
   }
 
   /**

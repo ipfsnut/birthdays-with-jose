@@ -18,7 +18,6 @@
     "tsx": "^4.6.0"
   },
   "optionalDependencies": {
-    "@ardrive/turbo-sdk": "^1.19.0",
     "@birthday-songs/shared": "*",
     "@birthday-songs/encryption": "*",
     "drizzle-orm": "^0.29.0"

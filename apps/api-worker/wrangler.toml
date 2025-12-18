@@ -28,6 +28,15 @@ id = "ebccf15623a44313ac911eca80ff7ea3"
 name = "birthday-songs-api-prod"
 vars = { ENVIRONMENT = "production" }
 
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "birthday-songs-db"
+database_id = "f9df84a6-4625-4b37-9e20-1637b107adff"
+
+[[env.production.kv_namespaces]]
+binding = "SETTINGS"
+id = "ebccf15623a44313ac911eca80ff7ea3"
+
 # Custom domains (add after deployment)
 # [env.production.routes]
 # pattern = "api.birthday-songs.com/*"
