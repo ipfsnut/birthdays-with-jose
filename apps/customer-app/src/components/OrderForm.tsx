@@ -175,6 +175,9 @@ export function OrderForm({ isConnected, farcasterUser }: OrderFormProps) {
   }, [isMintConfirmed, refetchContractData])
 
   const encryptAndUpload = async (): Promise<string> => {
+    // Debug: Log allowPublication state right before assembly
+    console.log('🔍 allowPublication state before assembly:', allowPublication)
+    
     // Build order data
     const orderData: OrderData = {
       type: selectedTier === SongType.BIRTHDAY ? 'birthday' : 'natal',
@@ -521,7 +524,10 @@ export function OrderForm({ isConnected, farcasterUser }: OrderFormProps) {
             <input
               type="checkbox"
               checked={allowPublication}
-              onChange={(e) => setAllowPublication(e.target.checked)}
+              onChange={(e) => {
+                console.log('📝 Checkbox changed:', e.target.checked)
+                setAllowPublication(e.target.checked)
+              }}
               disabled={isProcessing}
               className="w-5 h-5 rounded mt-0.5 text-orange-500 focus:ring-orange-300"
             />
