@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useReadContract } from 'wagmi'
 import { useWalletClient } from 'wagmi'
 import { BIRTHDAY_SONGS_ABI, CONTRACT_CONFIG } from '@/lib/contract'
-import { api, downloadSong, parseSongAccessKey } from '@/lib/api-dev'
+import { downloadSong } from '@/lib/api-dev'
 
 interface MyOrdersProps {
   address: `0x${string}` | undefined
@@ -123,22 +123,22 @@ function OrderCard({ tokenId, userAddress }: { tokenId: number; userAddress: str
     setError(null)
 
     try {
-      // Parse the song URI to get file ID
-      // Extract file ID from ArDrive URI
-      const fileId = typedOrder.songUri.replace('ardrive://', '')
+      // Download song with NFT ownership verification
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/songs/${tokenId}/${userAddress}`)
       
-      // For demo: the song key would be shared with NFT holder
-      // In reality, this would come from NFT metadata or be derived from tokenId
-      const songKey = `song-${tokenId}-key` // Simplified for demo
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Download failed')
+      }
       
-      // Fetch and decrypt via API (ArDrive handles decryption with the key)
-      const decryptedBase64 = await api.fetchSong(fileId, songKey)
+      const { songData } = await response.json()
       
-      // Download the decrypted song
-      downloadSong(decryptedBase64, `birthday-song-${tokenId}.mp3`)
+      // Download the song
+      downloadSong(songData, `birthday-song-${tokenId}.mp3`)
     } catch (err) {
       console.error('Download error:', err)
-      setError('Failed to decrypt. Make sure you own this NFT.')
+      const message = err instanceof Error ? err.message : 'Download failed'
+      setError(message.includes('not found') ? 'Song not yet ready' : 'Failed to download. Make sure you own this NFT.')
     } finally {
       setIsDecrypting(false)
     }

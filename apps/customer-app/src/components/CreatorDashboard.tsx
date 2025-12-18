@@ -344,8 +344,8 @@ function OrderDetails({ tokenId, decryptedData, setDecryptedData, isDecrypting, 
   })
 
   useEffect(() => {
-    const decrypt = async () => {
-      if (!order || decryptedData || isDecrypting || !walletClient) return
+    const fetchOrderData = async () => {
+      if (!order || decryptedData || isDecrypting) return
 
       const typedOrder = order as Order
       if (!typedOrder.orderDataUri) return
@@ -353,23 +353,41 @@ function OrderDetails({ tokenId, decryptedData, setDecryptedData, isDecrypting, 
       setIsDecrypting(true)
 
       try {
-        // Fetch and decrypt from ArDrive private drive
-        // Extract file ID from ArDrive URI
-        const fileId = typedOrder.orderDataUri.replace('ardrive://', '').replace('mock://', '')
+        // Fetch all orders from database
+        const orders = await api.listOrders()
         
-        // Fetch and decrypt order data via API
-        const data = await api.fetchOrder(fileId) as DecryptedOrderData
-
-        setDecryptedData(data)
+        // Find the order with matching token ID
+        const orderFromDB = orders.find(o => o.tokenId === tokenId || o.token_id === tokenId)
+        
+        if (orderFromDB) {
+          // Map database fields to expected format
+          const data: DecryptedOrderData = {
+            type: orderFromDB.orderType || orderFromDB.order_type || 'birthday',
+            recipientName: orderFromDB.recipientName || orderFromDB.recipient_name || '',
+            birthDate: orderFromDB.birthDate || orderFromDB.birth_date,
+            birthTime: orderFromDB.birthTime || orderFromDB.birth_time,
+            birthLocation: orderFromDB.birthLocation || orderFromDB.birth_location,
+            relationship: orderFromDB.relationship,
+            interests: orderFromDB.interests,
+            sunSign: orderFromDB.sunSign || orderFromDB.sun_sign,
+            moonSign: orderFromDB.moonSign || orderFromDB.moon_sign,
+            risingSign: orderFromDB.risingSign || orderFromDB.rising_sign,
+            musicalStyle: orderFromDB.musicalStyle || orderFromDB.musical_style,
+            message: orderFromDB.message,
+            orderedAt: orderFromDB.orderedAt || orderFromDB.created_at || '',
+            orderedBy: orderFromDB.orderedBy || orderFromDB.ordered_by || ''
+          }
+          setDecryptedData(data)
+        }
       } catch (err) {
-        console.error('Decrypt error:', err)
+        console.error('Fetch order error:', err)
       } finally {
         setIsDecrypting(false)
       }
     }
 
-    decrypt()
-  }, [order, decryptedData, isDecrypting, walletClient, setDecryptedData, setIsDecrypting])
+    fetchOrderData()
+  }, [order, decryptedData, isDecrypting, tokenId, setDecryptedData, setIsDecrypting])
 
   if (isLoading) return <div className="bg-blue-50 rounded-xl p-3 animate-pulse h-20"></div>
 

@@ -147,17 +147,17 @@ class DevBirthdaySongsAPI {
   }
 
   /**
-   * Upload song (now goes to Railway ArDrive service)
+   * Upload song (goes to Cloudflare API worker which handles ArDrive via Railway)
    */
   async uploadSong(tokenId: number, songBase64: string): Promise<UploadResponse> {
-    const response = await fetch(`${ARDRIVE_URL}/api/songs/upload`, {
+    const response = await fetch(`${this.baseUrl}/api/songs/upload`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        songData: songBase64,
         tokenId: tokenId,
+        songBase64: songBase64,
       }),
     })
     

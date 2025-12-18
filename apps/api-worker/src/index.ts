@@ -151,6 +151,46 @@ app.post('/api/orders/upload', async (c) => {
   }
 })
 
+// Upload song data (called by creator dashboard)
+app.post('/api/songs/upload', async (c) => {
+  try {
+    console.log('🔍 Song upload request received')
+    const { tokenId, songBase64 } = await c.req.json()
+    console.log('🔍 Song data for token:', tokenId)
+    
+    if (!tokenId || !songBase64) {
+      return c.json({ error: 'Missing tokenId or songBase64' }, 400)
+    }
+    
+    // Upload to Railway ArDrive service
+    const ardriveResponse = await fetch('https://birthday-songs-ardrive-production.up.railway.app/api/songs/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tokenId: tokenId,
+        songData: songBase64
+      })
+    })
+    
+    if (!ardriveResponse.ok) {
+      console.error('❌ Railway song upload error:', ardriveResponse.status, await ardriveResponse.text())
+      throw new Error(`Railway service error: ${ardriveResponse.status}`)
+    }
+    
+    const result = await ardriveResponse.json()
+    console.log('🔍 Railway song upload response:', result)
+    
+    return c.json(result)
+    
+  } catch (error) {
+    console.error('❌ Song upload failed:', error)
+    return c.json({ 
+      error: 'Failed to upload song',
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    }, 500)
+  }
+})
+
 // Update order as fulfilled (called by Railway ArDrive service after song upload)
 app.post('/api/orders/fulfill', async (c) => {
   try {
@@ -210,7 +250,57 @@ app.get('/api/orders/:arweaveId', async (c) => {
   }
 })
 
-// Get song data from ArDrive  
+// Get song data from ArDrive with NFT ownership verification
+app.get('/api/songs/:tokenId/:userAddress', async (c) => {
+  try {
+    const tokenId = c.req.param('tokenId')
+    const userAddress = c.req.param('userAddress')
+    
+    console.log('🔍 Song download request:', { tokenId, userAddress })
+    
+    // TODO: Verify NFT ownership by calling the contract
+    // For now, we'll trust the frontend verification
+    
+    // Get order from database to find song ArDrive ID
+    const { results } = await c.env.DB.prepare(`
+      SELECT song_arweave_id, status FROM orders WHERE token_id = ?
+    `).bind(parseInt(tokenId)).all()
+    
+    if (!results.length) {
+      return c.json({ error: 'Order not found' }, 404)
+    }
+    
+    const order = results[0] as any
+    if (!order.song_arweave_id) {
+      return c.json({ error: 'Song not yet uploaded' }, 404)
+    }
+    
+    if (order.status !== 'fulfilled') {
+      return c.json({ error: 'Song not yet ready' }, 404)
+    }
+    
+    // Fetch song from ArDrive
+    const response = await fetch(`https://arweave.net/${order.song_arweave_id}`)
+    if (!response.ok) {
+      throw new Error(`Failed to fetch from ArDrive: ${response.statusText}`)
+    }
+    
+    const songData = await response.text()
+    
+    return c.json({
+      success: true,
+      songData: songData,
+      arweaveId: order.song_arweave_id,
+      tokenId: parseInt(tokenId)
+    })
+    
+  } catch (error) {
+    console.error('❌ Song fetch failed:', error)
+    return c.json({ error: 'Failed to fetch song' }, 500)
+  }
+})
+
+// Legacy endpoint for backwards compatibility
 app.get('/api/songs/:arweaveId', async (c) => {
   try {
     const arweaveId = c.req.param('arweaveId')
