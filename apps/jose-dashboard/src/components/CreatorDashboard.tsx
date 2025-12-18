@@ -357,19 +357,28 @@ function OrderDetails({ tokenId, decryptedData, setDecryptedData, isDecrypting, 
         console.log('🔍 Decrypting order:', { tokenId, orderDataUri: typedOrder.orderDataUri, fileId })
         
         // Fetch and decrypt order data via API
-        const data = await api.fetchOrder(fileId) as DecryptedOrderData
-        console.log('📋 Decrypted order data:', data)
-
-        setDecryptedData(data)
+        const data = await api.fetchOrder(fileId)
+        console.log('📋 Raw decrypted data:', data)
+        console.log('📋 recipientName:', data?.recipientName)
+        
+        // Ensure we have the data and it's in the right format
+        if (data && typeof data === 'object' && data.recipientName) {
+          setDecryptedData(data as DecryptedOrderData)
+          console.log('✅ State set successfully')
+        } else {
+          console.error('❌ Invalid data structure:', data)
+          setDecryptedData(null)
+        }
       } catch (err) {
         console.error('❌ Decrypt error:', err)
+        setDecryptedData(null)
       } finally {
         setIsDecrypting(false)
       }
     }
 
     decrypt()
-  }, [order, decryptedData, isDecrypting, walletClient, setDecryptedData, setIsDecrypting])
+  }, [order, isDecrypting, walletClient, setDecryptedData, setIsDecrypting])
 
   if (isLoading) return <div className="bg-blue-50 rounded-xl p-3 animate-pulse h-20"></div>
 
@@ -389,7 +398,7 @@ function OrderDetails({ tokenId, decryptedData, setDecryptedData, isDecrypting, 
 
       {isDecrypting && <p className="text-gray-500 italic text-xs">🔐 Decrypting order details...</p>}
 
-      {decryptedData && (
+      {decryptedData && decryptedData.recipientName && (
         <div className="border-t border-blue-200 pt-2 mt-2 space-y-1 text-gray-700">
           <p><span className="font-medium">For:</span> {decryptedData.recipientName}</p>
           {decryptedData.birthDate && <p><span className="font-medium">Birth:</span> {decryptedData.birthDate}</p>}
