@@ -199,6 +199,17 @@ export function OrderForm({ isConnected, farcasterUser }: OrderFormProps) {
       if (musicalStyle) orderData.musicalStyle = musicalStyle
     }
 
+    // Debug: Log order data before upload
+    console.log('🔍 Order data being uploaded:', JSON.stringify(orderData, null, 2))
+    console.log('🔍 Form values:', { 
+      recipientName, 
+      birthDate, 
+      relationship, 
+      interests, 
+      message, 
+      allowPublication 
+    })
+
     // Upload order data via API worker
     setStep('uploading')
     

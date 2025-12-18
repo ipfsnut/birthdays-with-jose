@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useAccount, useConnect } from 'wagmi'
+import { useAccount, useConnect, useSwitchChain } from 'wagmi'
+import { base } from 'wagmi/chains'
 import Image from 'next/image'
 import { BIRTHDAY_SONGS_ABI, CONTRACT_CONFIG, CREATOR_ADDRESS } from '@/lib/contract'
 import { OrderForm } from '@/components/OrderForm'
@@ -17,6 +18,7 @@ export default function Home() {
 
   const { address, isConnected } = useAccount()
   const { connect, connectors } = useConnect()
+  const { switchChain } = useSwitchChain()
 
   // Check if user is creator
   const isCreator = address?.toLowerCase() === CREATOR_ADDRESS.toLowerCase()
@@ -59,12 +61,22 @@ export default function Home() {
       const farcasterConnector = connectors.find(c => c.id === 'farcaster')
       if (farcasterConnector) {
         console.log('Connecting to connector:', farcasterConnector.id, farcasterConnector.name)
-        connect({ connector: farcasterConnector })
+        try {
+          connect({ connector: farcasterConnector, chainId: base.id })
+          // Switch to Base chain after a brief delay
+          setTimeout(() => {
+            if (switchChain) {
+              switchChain({ chainId: base.id })
+            }
+          }, 1000)
+        } catch (error) {
+          console.error('Connection error:', error)
+        }
       } else {
         console.error('No suitable connector found! Available:', connectors.map(c => c.id))
       }
     }
-  }, [farcasterUser, isConnected, isSDKLoaded, connectors, connect])
+  }, [farcasterUser, isConnected, isSDKLoaded, connectors, connect, switchChain])
 
   // Manual connect (disabled - now handled by auto-connect above)
   // useEffect(() => {
