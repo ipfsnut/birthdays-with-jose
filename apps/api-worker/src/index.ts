@@ -126,10 +126,10 @@ app.post('/api/orders/upload', async (c) => {
     console.log('🔍 Order data received:', JSON.stringify(orderData, null, 2))
     
     // Upload to Railway ArDrive service
-    const ardriveResponse = await fetch('https://birthday-songs-ardrive-production.up.railway.app/upload', {
+    const ardriveResponse = await fetch('https://birthdays-with-jose-production.up.railway.app/api/orders/upload', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(orderData)
+      body: JSON.stringify({ orderData })
     })
     
     if (!ardriveResponse.ok) {
@@ -163,7 +163,7 @@ app.post('/api/songs/upload', async (c) => {
     }
     
     // Upload to Railway ArDrive service
-    const ardriveResponse = await fetch('https://birthday-songs-ardrive-production.up.railway.app/api/songs/upload', {
+    const ardriveResponse = await fetch('https://birthdays-with-jose-production.up.railway.app/api/songs/upload', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
