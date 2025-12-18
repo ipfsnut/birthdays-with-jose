@@ -119,7 +119,8 @@ app.post('/api/orders/upload', async (req, res) => {
           body: JSON.stringify({
             tokenId,
             arweaveId: orderUploadResult.id,
-            status: 'pending'
+            status: 'pending',
+            orderData: orderData
           })
         });
       } catch (dbError) {
