@@ -65,9 +65,16 @@ async function mockEncrypt(data: any): Promise<string> {
 
 async function mockDecrypt(encrypted: string): Promise<any> {
   try {
-    return JSON.parse(atob(encrypted))
+    // First try to parse as JSON directly (if it's already a JSON string)
+    return JSON.parse(encrypted)
   } catch {
-    return encrypted
+    try {
+      // If that fails, try base64 decode then parse
+      return JSON.parse(atob(encrypted))
+    } catch {
+      // If both fail, return as is
+      return encrypted
+    }
   }
 }
 
