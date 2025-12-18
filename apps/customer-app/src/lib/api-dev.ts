@@ -128,21 +128,15 @@ class DevBirthdaySongsAPI {
   }
 
   /**
-   * Upload order (now goes to Railway ArDrive service)
+   * Upload order (goes to Cloudflare API worker which handles ArDrive via Railway)
    */
   async uploadOrder(orderData: OrderData): Promise<UploadResponse> {
-    const response = await fetch(`${ARDRIVE_URL}/api/orders/upload`, {
+    const response = await fetch(`${this.baseUrl}/api/orders/upload`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        orderData: orderData,
-        metadata: {
-          tokenId: orderData.tokenId,
-          type: orderData.type,
-        },
-      }),
+      body: JSON.stringify(orderData),
     })
     
     if (!response.ok) {

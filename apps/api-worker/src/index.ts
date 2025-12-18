@@ -66,22 +66,42 @@ app.get('/', (c) => {
 // Store order metadata in D1 database (called by Railway ArDrive service)
 app.post('/api/orders/metadata', async (c) => {
   try {
-    const { tokenId, arweaveId, status } = await c.req.json()
+    const { tokenId, arweaveId, status, orderData } = await c.req.json()
     
     if (!tokenId || !arweaveId) {
       return c.json({ error: 'Missing required fields' }, 400)
     }
     
-    // Store metadata in D1 database
+    console.log('🔍 Storing order metadata:', { tokenId, arweaveId, orderData })
+    
+    // Store full metadata in D1 database
     await c.env.DB.prepare(`
-      INSERT INTO orders (id, token_id, arweave_id, status, created_at)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO orders (
+        id, token_id, arweave_id, status, created_at,
+        recipient_name, birth_date, relationship, interests, message,
+        allow_publication, birth_time, birth_location, sun_sign, moon_sign,
+        rising_sign, musical_style, order_type, ordered_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       crypto.randomUUID(),
       tokenId,
       arweaveId,
       status || 'pending',
-      new Date().toISOString()
+      new Date().toISOString(),
+      orderData?.recipientName || null,
+      orderData?.birthDate || null,
+      orderData?.relationship || null,
+      orderData?.interests || null,
+      orderData?.message || null,
+      orderData?.allowPublication ? 1 : 0,
+      orderData?.birthTime || null,
+      orderData?.birthLocation || null,
+      orderData?.sunSign || null,
+      orderData?.moonSign || null,
+      orderData?.risingSign || null,
+      orderData?.musicalStyle || null,
+      orderData?.type || null,
+      orderData?.orderedBy || null
     ).run()
     
     return c.json({
@@ -90,9 +110,42 @@ app.post('/api/orders/metadata', async (c) => {
     })
     
   } catch (error) {
-    console.error('Metadata storage failed:', error)
+    console.error('❌ Metadata storage failed:', error)
     return c.json({ 
       error: 'Failed to store metadata',
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    }, 500)
+  }
+})
+
+// Upload order data (called by frontend)
+app.post('/api/orders/upload', async (c) => {
+  try {
+    console.log('🔍 Upload request received')
+    const orderData = await c.req.json()
+    console.log('🔍 Order data received:', JSON.stringify(orderData, null, 2))
+    
+    // Upload to Railway ArDrive service
+    const ardriveResponse = await fetch('https://birthday-songs-ardrive-production.up.railway.app/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderData)
+    })
+    
+    if (!ardriveResponse.ok) {
+      console.error('❌ Railway service error:', ardriveResponse.status, await ardriveResponse.text())
+      throw new Error(`Railway service error: ${ardriveResponse.status}`)
+    }
+    
+    const result = await ardriveResponse.json()
+    console.log('🔍 Railway response:', result)
+    
+    return c.json(result)
+    
+  } catch (error) {
+    console.error('❌ Upload failed:', error)
+    return c.json({ 
+      error: 'Failed to upload order',
       details: error instanceof Error ? error.message : 'Unknown error' 
     }, 500)
   }
@@ -193,7 +246,19 @@ app.get('/api/orders', async (c) => {
     const mappedOrders = results.map(order => ({
       ...order,
       orderDataUri: `ardrive://${order.arweave_id}`,
-      tokenId: order.token_id
+      tokenId: order.token_id,
+      // Map snake_case to camelCase for frontend compatibility
+      recipientName: order.recipient_name,
+      birthDate: order.birth_date,
+      allowPublication: Boolean(order.allow_publication),
+      birthTime: order.birth_time,
+      birthLocation: order.birth_location,
+      sunSign: order.sun_sign,
+      moonSign: order.moon_sign,
+      risingSign: order.rising_sign,
+      musicalStyle: order.musical_style,
+      orderType: order.order_type,
+      orderedBy: order.ordered_by
     }))
     
     return c.json({
