@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "deploy": "wrangler pages deploy out --project-name=birthday-songs-dashboard"
+    "deploy": "wrangler pages deploy out --project-name=birthdays-with-jose-dashboard"
   },
   "dependencies": {
     "@birthday-songs/shared": "*",

@@ -1,12 +1,32 @@
 {
+  "accountAssociation": {
+    "header": "eyJmaWQiOjg1NzMsInR5cGUiOiJhdXRoIiwia2V5IjoiMHgxOEE4NWFkMzQxYjJENkEyYmQ2N2ZiYjEwNEI0ODI3QjkyMmEyQTNjIn0",
+    "payload": "eyJkb21haW4iOiJiaXJ0aGRheXMtd2l0aC1qb3NlLnBhZ2VzLmRldiJ9",
+    "signature": "gJKcdNqm2i8/uC92dqwSrRMysY4tlRrhoHjr9Gj73hhteABdU7lRUd5PS64Kze+P0AXnTIaq4Qc+SObK+gEnKxs="
+  },
   "frame": {
-    "version": "1", 
-    "name": "Jose's Birthday Songs",
-    "iconUrl": "https://birthdays-with-jose.pages.dev/JoseWarplet.png",
+    "name": "Birthday-With-Jose",
+    "version": "1",
+    "iconUrl": "https://birthdays-with-jose.pages.dev/icon.png",
     "homeUrl": "https://birthdays-with-jose.pages.dev",
-    "imageUrl": "https://birthdays-with-jose.pages.dev/JoseWarplet.png", 
-    "buttonTitle": "🎂 Order Your Song",
-    "splashImageUrl": "https://birthdays-with-jose.pages.dev/JoseWarplet.png",
-    "splashBackgroundColor": "#60a5fa"
+    "imageUrl": "https://birthdays-with-jose.pages.dev/image.png",
+    "buttonTitle": "Open miniapp",
+    "splashImageUrl": "https://birthdays-with-jose.pages.dev/splash.png",
+    "splashBackgroundColor": "#000000",
+    "webhookUrl": "https://birthdays-with-jose.pages.dev/api/webhook",
+    "subtitle": "Music for your special day",
+    "description": "Give the gift of beautiful music!",
+    "primaryCategory": "music",
+    "tags": [
+      "music",
+      "birthday",
+      "jose",
+      "happy"
+    ],
+    "tagline": "Unique song, special birthday",
+    "ogTitle": "Birthday With Jose!",
+    "ogDescription": "Let Jose sing happy birthday to your loved ones!"
   }
 }
+
+

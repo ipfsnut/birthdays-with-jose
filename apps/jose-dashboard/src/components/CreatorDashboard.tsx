@@ -357,8 +357,20 @@ function OrderDetails({ tokenId, decryptedData, setDecryptedData, isDecrypting, 
         console.log('🔍 Decrypting order:', { tokenId, orderDataUri: typedOrder.orderDataUri, fileId })
         
         // Fetch and decrypt order data via API
-        const data = await api.fetchOrder(fileId)
-        console.log('📋 Raw decrypted data:', data)
+        let data = await api.fetchOrder(fileId)
+        console.log('📋 Raw decrypted data:', data, typeof data)
+        
+        // WORKAROUND: If data is a string, parse it manually
+        if (typeof data === 'string') {
+          try {
+            data = JSON.parse(data)
+            console.log('🔧 Force-parsed string data:', data)
+          } catch (error) {
+            console.error('❌ Failed to force-parse string:', error)
+          }
+        }
+        
+        console.log('📋 Final data:', data)
         console.log('📋 recipientName:', data?.recipientName)
         
         // Ensure we have the data and it's in the right format

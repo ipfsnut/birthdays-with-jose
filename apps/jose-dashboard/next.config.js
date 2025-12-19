@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   output: 'export',
-  distDir: 'dist',
+  distDir: 'out',
   trailingSlash: true,
   images: {
     unoptimized: true
@@ -11,14 +11,6 @@ const nextConfig = {
     NEXT_PUBLIC_API_URL: process.env.NODE_ENV === 'production' 
       ? 'https://birthday-songs-api.dylan-259.workers.dev'
       : 'http://localhost:8787'
-  },
-  async rewrites() {
-    return [
-      {
-        source: '/.well-known/farcaster.json',
-        destination: '/api/farcaster-manifest',
-      },
-    ]
   },
 }
 
